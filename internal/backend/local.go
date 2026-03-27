@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/example/deutsch-srs/internal/importexport"
-	"github.com/example/deutsch-srs/internal/srs"
-	"github.com/example/deutsch-srs/internal/store"
+	"github.com/shaoyanji/deutsch-srs/internal/importexport"
+	"github.com/shaoyanji/deutsch-srs/internal/srs"
+	"github.com/shaoyanji/deutsch-srs/internal/store"
 )
 
 type LocalBackend struct {

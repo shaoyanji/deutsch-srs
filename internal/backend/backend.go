@@ -3,7 +3,7 @@ package backend
 import (
 	"context"
 
-	"github.com/example/deutsch-srs/internal/srs"
+	"github.com/shaoyanji/deutsch-srs/internal/srs"
 )
 
 type Backend interface {

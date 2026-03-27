@@ -11,8 +11,8 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/example/deutsch-srs/internal/backend"
-	"github.com/example/deutsch-srs/internal/srs"
+	"github.com/shaoyanji/deutsch-srs/internal/backend"
+	"github.com/shaoyanji/deutsch-srs/internal/srs"
 )
 
 type Mode string

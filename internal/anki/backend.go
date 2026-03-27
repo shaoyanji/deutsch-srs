@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/example/deutsch-srs/internal/backend"
-	"github.com/example/deutsch-srs/internal/srs"
+	"github.com/shaoyanji/deutsch-srs/internal/backend"
+	"github.com/shaoyanji/deutsch-srs/internal/srs"
 )
 
 type Backend struct {

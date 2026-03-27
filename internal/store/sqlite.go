@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	_ "modernc.org/sqlite"
 
-	"github.com/example/deutsch-srs/internal/srs"
+	"github.com/shaoyanji/deutsch-srs/internal/srs"
 )
 
 type AddCardInput struct {

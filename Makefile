@@ -1,18 +1,36 @@
-APP=deutsch-srs
+APP := deutsch-srs
+CMD := ./cmd/$(APP)
+BIN_DIR := ./bin
+BIN := $(BIN_DIR)/$(APP)
 
-.PHONY: test build run fmt tidy
+VERSION ?= dev
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
+DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+
+LDFLAGS := -X github.com/shaoyanji/deutsch-srs/internal/version.Version=$(VERSION) \
+	-X github.com/shaoyanji/deutsch-srs/internal/version.Commit=$(COMMIT) \
+	-X github.com/shaoyanji/deutsch-srs/internal/version.Date=$(DATE)
+
+.PHONY: fmt tidy test build run clean install
+
+fmt:
+	gofmt -w $$(find . -name '*.go' -not -path './vendor/*')
+
+tidy:
+	go mod tidy
 
 test:
 	go test ./...
 
 build:
-	go build -o bin/$(APP) ./cmd/$(APP)
+	mkdir -p $(BIN_DIR)
+	go build -ldflags "$(LDFLAGS)" -o $(BIN) $(CMD)
 
 run:
-	go run ./cmd/$(APP)
+	go run -ldflags "$(LDFLAGS)" $(CMD)
 
-fmt:
-	gofmt -w $(shell find . -name '*.go' -not -path './vendor/*')
+install:
+	go install -ldflags "$(LDFLAGS)" $(CMD)
 
-tidy:
-	go mod tidy
+clean:
+	rm -rf $(BIN_DIR)

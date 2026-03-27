@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/example/deutsch-srs/internal/srs"
+	"github.com/shaoyanji/deutsch-srs/internal/srs"
 )
 
 func newLocalBackendForTest(t *testing.T) *LocalBackend {

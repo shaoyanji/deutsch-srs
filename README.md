@@ -32,10 +32,13 @@ It is built with:
 
 The UI depends on one backend interface (`internal/backend/backend.go`).
 
-## Run
+## Build And Run
 
 ```bash
 make tidy
+make test
+make build
+./bin/deutsch-srs --version
 make run
 ```
 
@@ -49,6 +52,7 @@ go run ./cmd/deutsch-srs \
 ```
 
 When `-starter` is provided in local mode, startup seeds that deck only if the database is empty.
+If you run the binary outside the repo root, pass an explicit `-starter` path (for example an absolute path) or omit it.
 
 Anki mode:
 
@@ -56,6 +60,29 @@ Anki mode:
 go run ./cmd/deutsch-srs \
   -backend anki \
   -anki-url http://127.0.0.1:8765
+```
+
+## Release/Packaging
+
+Local build artifact:
+
+```bash
+make build
+ls -lh ./bin/deutsch-srs
+```
+
+Local install to `GOBIN`/`GOPATH/bin`:
+
+```bash
+make install
+deutsch-srs --version
+```
+
+Inject version/build metadata at build time:
+
+```bash
+make build VERSION=v0.1.0
+./bin/deutsch-srs --version
 ```
 
 ## Keybindings
@@ -108,6 +135,15 @@ Covers:
 - Anki mode intentionally does not write review scheduling state back to Anki.
 - Local scheduler uses per-card stability/difficulty with a forgetting-curve model, and is not exact Anki parity.
 - Import/export helpers are intentionally narrow (simple YAML/CSV).
+
+## Project Status
+
+- Local mode is the primary supported path.
+- AnkiConnect mode is secondary and intentionally narrow.
+
+## License
+
+No license file is currently included in this repository.
 
 ## Local Import/Export (Minimal Flow)
 

@@ -1,4 +1,4 @@
-module github.com/example/deutsch-srs
+module github.com/shaoyanji/deutsch-srs
 
 go 1.23.0
 

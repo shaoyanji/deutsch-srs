@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/example/deutsch-srs/internal/importexport"
-	"github.com/example/deutsch-srs/internal/store"
+	"github.com/shaoyanji/deutsch-srs/internal/importexport"
+	"github.com/shaoyanji/deutsch-srs/internal/store"
 )
 
 func (b *LocalBackend) ImportYAML(ctx context.Context, path string) (int, error) {

@@ -5,9 +5,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/example/deutsch-srs/internal/anki"
-	"github.com/example/deutsch-srs/internal/backend"
-	"github.com/example/deutsch-srs/internal/ui"
+	"github.com/shaoyanji/deutsch-srs/internal/anki"
+	"github.com/shaoyanji/deutsch-srs/internal/backend"
+	"github.com/shaoyanji/deutsch-srs/internal/ui"
 )
 
 type Config struct {
