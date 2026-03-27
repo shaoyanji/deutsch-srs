@@ -170,6 +170,18 @@ func (s *SQLiteStore) SearchCards(ctx context.Context, query string, limit int) 
 	return scanCards(rows)
 }
 
+func (s *SQLiteStore) AllCards(ctx context.Context) ([]srs.Card, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, reps, lapses, suspended, created_at, updated_at
+		FROM cards
+		ORDER BY created_at ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanCards(rows)
+}
+
 func (s *SQLiteStore) GetCard(ctx context.Context, id string) (srs.Card, error) {
 	row := s.db.QueryRowContext(ctx, `
 		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, reps, lapses, suspended, created_at, updated_at

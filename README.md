@@ -48,6 +48,8 @@ go run ./cmd/deutsch-srs \
   -starter ./decks/starter.yaml
 ```
 
+When `-starter` is provided in local mode, startup seeds that deck only if the database is empty.
+
 Anki mode:
 
 ```bash
@@ -59,13 +61,16 @@ go run ./cmd/deutsch-srs \
 ## Keybindings
 
 - `j/k` or arrows: move
-- `enter`: select in Browse; Add mode advances/submits; Search mode executes query
+- `enter`: select in Browse; Add mode submits on Tags and runs IO command on IO field; Search mode executes query
 - `space`: reveal review answer
 - `1/2/3/4`: Again/Hard/Good/Easy (after reveal)
 - `tab`: switch mode (and form focus in Add mode)
 - `esc`: back/cancel
 - `?`: help
-- `q`: quit
+- `q`: quit (outside focused text-entry fields)
+- `ctrl+c`: hard quit
+
+While typing in Add/Search text inputs, printable keys are inserted into the input instead of triggering global quit/navigation bindings.
 
 ## Architecture
 
@@ -103,3 +108,13 @@ Covers:
 - Anki mode intentionally does not write review scheduling state back to Anki.
 - Scheduler targets practical consistency, not exact Anki parity.
 - Import/export helpers are intentionally narrow (simple YAML/CSV).
+
+## Local Import/Export (Minimal Flow)
+
+In Add mode, use the `IO command` field for local-only import/export:
+
+- `import yaml <path>`
+- `import csv <path>`
+- `export csv <path>`
+
+The UI shows explicit success or error text after each command.

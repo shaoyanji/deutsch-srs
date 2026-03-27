@@ -8,7 +8,7 @@ import (
 func (m Model) viewAdd() string {
 	var b strings.Builder
 	b.WriteString(m.theme.Title.Render("Add Card") + "\n\n")
-	labels := []string{"Deck *", "Front *", "Back *", "Tags (comma)"}
+	labels := []string{"Deck *", "Front *", "Back *", "Tags (comma)", "IO command (local only)"}
 	values := make([]string, 0, len(m.addInputs))
 	for i, in := range m.addInputs {
 		values = append(values, in.Value())
@@ -34,6 +34,7 @@ func (m Model) viewAdd() string {
 		b.WriteString(m.theme.Error.Render("Add error: "+m.errText) + "\n")
 	}
 	b.WriteString("\n")
-	b.WriteString(m.theme.Muted.Render("tab/j/k move fields, enter moves forward, enter on Tags submits, esc cancel"))
+	b.WriteString(m.theme.Muted.Render("tab/shift+tab move fields, enter on Tags submits card, enter on IO command runs import/export, esc cancel") + "\n")
+	b.WriteString(m.theme.Muted.Render("IO commands: import yaml <path> | import csv <path> | export csv <path>"))
 	return strings.TrimRight(b.String(), "\n")
 }

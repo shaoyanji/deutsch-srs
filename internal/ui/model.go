@@ -54,6 +54,11 @@ type searchMsg struct {
 	err   error
 }
 
+type ioResultMsg struct {
+	summary string
+	err     error
+}
+
 type Model struct {
 	backend backend.Backend
 	mode    Mode
@@ -105,7 +110,7 @@ func NewModel(be backend.Backend) Model {
 }
 
 func buildAddInputs() []textinput.Model {
-	placeholders := []string{"Starter German", "Guten Morgen", "Good morning", "greeting,basics"}
+	placeholders := []string{"Starter German", "Guten Morgen", "Good morning", "greeting,basics", "import yaml ./decks/starter.yaml"}
 	inputs := make([]textinput.Model, 0, len(placeholders))
 	for i := range placeholders {
 		in := textinput.New()
@@ -203,10 +208,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.searchExecuted = true
 		m.searchListFocus = len(msg.cards) > 0
 		return m, nil
+	case ioResultMsg:
+		if msg.err != nil {
+			m.setError("local io", msg.err)
+			return m, nil
+		}
+		m.errText = ""
+		m.infoText = msg.summary
+		m.addInputs[4].SetValue("")
+		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
 	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if key.Matches(msg, m.keys.HardQuit) {
+			return m, tea.Quit
+		}
+
+		// Text entry gets first priority (except hard quit), so printable keys are not intercepted.
+		if m.isTextEntryFocused() {
+			switch m.mode {
+			case ModeAdd:
+				return m.updateAdd(msg)
+			case ModeSearch:
+				return m.updateSearch(msg)
+			}
+		}
+
 		if key.Matches(msg, m.keys.Quit) {
 			return m, tea.Quit
 		}
@@ -218,14 +246,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.mode {
 			case ModeReview:
 				m.mode = ModeBrowse
-			case ModeAdd, ModeStats:
+			case ModeAdd, ModeSearch, ModeStats:
 				m.mode = ModeBrowse
 			}
 			m.errText = ""
 			m.infoText = ""
 			return m, nil
 		}
-		if key.Matches(msg, m.keys.Tab) && m.mode != ModeAdd {
+		if key.Matches(msg, m.keys.Tab) && m.mode != ModeAdd && m.mode != ModeSearch {
 			m.cycleMode()
 			if m.mode == ModeStats {
 				return m, m.cmdLoadStats()
@@ -314,11 +342,10 @@ func (m Model) gradeCurrentCard(grade srs.ReviewGrade) (tea.Model, tea.Cmd) {
 
 func (m Model) updateAdd(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
-	case key.Matches(msg, m.keys.Down):
-		m.setFocusedInput((m.focusedInput + 1) % len(m.addInputs))
-		return m, nil
-	case key.Matches(msg, m.keys.Up):
-		m.setFocusedInput((m.focusedInput - 1 + len(m.addInputs)) % len(m.addInputs))
+	case key.Matches(msg, m.keys.Back):
+		m.mode = ModeBrowse
+		m.errText = ""
+		m.infoText = ""
 		return m, nil
 	case key.Matches(msg, m.keys.NextInput):
 		m.setFocusedInput((m.focusedInput + 1) % len(m.addInputs))
@@ -327,10 +354,19 @@ func (m Model) updateAdd(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.setFocusedInput((m.focusedInput - 1 + len(m.addInputs)) % len(m.addInputs))
 		return m, nil
 	case key.Matches(msg, m.keys.SubmitCard):
-		if m.focusedInput < len(m.addInputs)-1 {
+		if m.focusedInput < 3 {
 			m.setFocusedInput(m.focusedInput + 1)
 			m.infoText = "Moved to next field. Press enter on Tags to submit."
 			return m, nil
+		}
+		if m.focusedInput == 4 {
+			raw := strings.TrimSpace(m.addInputs[4].Value())
+			cmd, err := parseIOCommand(raw)
+			if err != nil {
+				m.setError("local io", err)
+				return m, nil
+			}
+			return m, m.cmdRunLocalIO(cmd)
 		}
 		deck := strings.TrimSpace(m.addInputs[0].Value())
 		front := strings.TrimSpace(m.addInputs[1].Value())
@@ -369,6 +405,17 @@ func (m Model) updateStats(tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
+	case key.Matches(msg, m.keys.Back):
+		m.mode = ModeBrowse
+		m.errText = ""
+		m.infoText = ""
+		return m, nil
+	case key.Matches(msg, m.keys.NextInput):
+		m.searchListFocus = len(m.searchResults) > 0
+		return m, nil
+	case key.Matches(msg, m.keys.PrevInput):
+		m.searchListFocus = false
+		return m, nil
 	case key.Matches(msg, m.keys.Select):
 		query := strings.TrimSpace(m.searchInput.Value())
 		if query == "" {
@@ -440,6 +487,17 @@ func (m *Model) setFocusedInput(idx int) {
 	}
 }
 
+func (m Model) isTextEntryFocused() bool {
+	switch m.mode {
+	case ModeAdd:
+		return true
+	case ModeSearch:
+		return !m.searchListFocus
+	default:
+		return false
+	}
+}
+
 func (m *Model) setError(action string, err error) {
 	m.errText = action + ": " + err.Error()
 	m.infoText = ""
@@ -484,6 +542,45 @@ func (m Model) cmdSearchCards(query string) tea.Cmd {
 	return func() tea.Msg {
 		cards, err := m.backend.SearchCards(context.Background(), query, 100)
 		return searchMsg{cards: cards, err: err}
+	}
+}
+
+type localIO interface {
+	ImportYAML(ctx context.Context, path string) (int, error)
+	ImportCSV(ctx context.Context, path string) (int, error)
+	ExportCSV(ctx context.Context, path string) (int, error)
+}
+
+func (m Model) cmdRunLocalIO(cmd ioCommand) tea.Cmd {
+	return func() tea.Msg {
+		be, ok := m.backend.(localIO)
+		if !ok {
+			return ioResultMsg{err: fmt.Errorf("import/export is available in local backend only")}
+		}
+		switch cmd.Action {
+		case "import":
+			switch cmd.Format {
+			case "yaml":
+				n, err := be.ImportYAML(context.Background(), cmd.Path)
+				if err != nil {
+					return ioResultMsg{err: err}
+				}
+				return ioResultMsg{summary: fmt.Sprintf("Imported %d cards from YAML: %s", n, cmd.Path)}
+			case "csv":
+				n, err := be.ImportCSV(context.Background(), cmd.Path)
+				if err != nil {
+					return ioResultMsg{err: err}
+				}
+				return ioResultMsg{summary: fmt.Sprintf("Imported %d cards from CSV: %s", n, cmd.Path)}
+			}
+		case "export":
+			n, err := be.ExportCSV(context.Background(), cmd.Path)
+			if err != nil {
+				return ioResultMsg{err: err}
+			}
+			return ioResultMsg{summary: fmt.Sprintf("Exported %d cards to CSV: %s", n, cmd.Path)}
+		}
+		return ioResultMsg{err: fmt.Errorf("unsupported command")}
 	}
 }
 

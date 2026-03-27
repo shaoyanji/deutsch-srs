@@ -3,6 +3,7 @@ package backend
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/example/deutsch-srs/internal/importexport"
@@ -26,7 +27,7 @@ func NewLocalBackend(dbPath, starterDeckPath string) (*LocalBackend, error) {
 	}
 	if err := b.seedIfEmpty(context.Background(), starterDeckPath); err != nil {
 		_ = st.Close()
-		return nil, err
+		return nil, fmt.Errorf("local startup seed failed: %w", err)
 	}
 	return b, nil
 }
@@ -36,6 +37,7 @@ func (b *LocalBackend) Close() error {
 }
 
 func (b *LocalBackend) seedIfEmpty(ctx context.Context, starterDeckPath string) error {
+	starterDeckPath = strings.TrimSpace(starterDeckPath)
 	if starterDeckPath == "" {
 		return nil
 	}
@@ -48,7 +50,7 @@ func (b *LocalBackend) seedIfEmpty(ctx context.Context, starterDeckPath string) 
 	}
 	deckFile, err := importexport.LoadYAML(starterDeckPath)
 	if err != nil {
-		return fmt.Errorf("load starter deck: %w", err)
+		return fmt.Errorf("load starter deck %q: %w", starterDeckPath, err)
 	}
 	for _, c := range deckFile.Cards {
 		_, err := b.store.AddCard(ctx, store.AddCardInput{

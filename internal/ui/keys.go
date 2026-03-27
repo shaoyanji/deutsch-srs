@@ -3,6 +3,7 @@ package ui
 import "github.com/charmbracelet/bubbles/key"
 
 type keyMap struct {
+	HardQuit   key.Binding
 	Up         key.Binding
 	Down       key.Binding
 	Select     key.Binding
@@ -22,6 +23,7 @@ type keyMap struct {
 
 func defaultKeys() keyMap {
 	return keyMap{
+		HardQuit:   key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "hard quit")),
 		Up:         key.NewBinding(key.WithKeys("k", "up"), key.WithHelp("k/up", "up")),
 		Down:       key.NewBinding(key.WithKeys("j", "down"), key.WithHelp("j/down", "down")),
 		Select:     key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
@@ -33,7 +35,7 @@ func defaultKeys() keyMap {
 		Tab:        key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "switch")),
 		Back:       key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 		Help:       key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
-		Quit:       key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
+		Quit:       key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
 		NextInput:  key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next field")),
 		PrevInput:  key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev field")),
 		SubmitCard: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "submit")),

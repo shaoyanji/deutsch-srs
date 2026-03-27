@@ -14,4 +14,6 @@ cards:
     tags: [basics]
   - front: Ich lerne Deutsch.
     back: I am learning German.
+  - front: Ich lerne kein Deutsch.
+    back: I am learning German.
     tags: [sentence, basics]
