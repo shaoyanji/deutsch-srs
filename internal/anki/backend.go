@@ -1,0 +1,151 @@
+package anki
+
+import (
+	"context"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/example/deutsch-srs/internal/backend"
+	"github.com/example/deutsch-srs/internal/srs"
+)
+
+type Backend struct {
+	client *Client
+	now    func() time.Time
+}
+
+func NewBackend(baseURL string) *Backend {
+	return &Backend{
+		client: NewClient(baseURL),
+		now:    time.Now,
+	}
+}
+
+func (b *Backend) ListDecks(ctx context.Context) ([]srs.Deck, error) {
+	names, err := b.client.DeckNames(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]srs.Deck, 0, len(names))
+	for _, n := range names {
+		out = append(out, srs.Deck{Name: n})
+	}
+	return out, nil
+}
+
+func (b *Backend) DueCards(ctx context.Context, deck string, limit int) ([]srs.Card, error) {
+	query := fmt.Sprintf("deck:%q is:due", deck)
+	ids, err := b.client.FindCards(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && len(ids) > limit {
+		ids = ids[:limit]
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	infos, err := b.client.CardsInfo(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	now := b.now().UTC()
+	out := make([]srs.Card, 0, len(infos))
+	for _, info := range infos {
+		out = append(out, srs.Card{
+			ID:        strconv.FormatInt(info.CardID, 10),
+			Deck:      info.Deck,
+			Front:     info.Front,
+			Back:      info.Back,
+			Tags:      info.Tags,
+			DueAt:     now,
+			CreatedAt: now,
+			UpdatedAt: now,
+		})
+	}
+	return out, nil
+}
+
+func (b *Backend) AddCard(ctx context.Context, in backend.AddCardInput) (srs.Card, error) {
+	id, err := b.client.AddNote(ctx, in.Deck, in.Front, in.Back, in.Tags)
+	if err != nil {
+		return srs.Card{}, err
+	}
+	now := b.now().UTC()
+	return srs.Card{
+		ID:        strconv.FormatInt(id, 10),
+		Deck:      in.Deck,
+		Front:     in.Front,
+		Back:      in.Back,
+		NoteType:  in.NoteType,
+		Tags:      in.Tags,
+		DueAt:     now,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}, nil
+}
+
+func (b *Backend) AnswerCard(context.Context, string, srs.ReviewGrade) error {
+	return fmt.Errorf("answering cards is intentionally unsupported in AnkiConnect backend")
+}
+
+func (b *Backend) SearchCards(ctx context.Context, query string, limit int) ([]srs.Card, error) {
+	ids, err := b.client.FindCards(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	if limit > 0 && len(ids) > limit {
+		ids = ids[:limit]
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	infos, err := b.client.CardsInfo(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]srs.Card, 0, len(infos))
+	for _, info := range infos {
+		out = append(out, srs.Card{
+			ID:    strconv.FormatInt(info.CardID, 10),
+			Deck:  info.Deck,
+			Front: info.Front,
+			Back:  info.Back,
+			Tags:  info.Tags,
+		})
+	}
+	return out, nil
+}
+
+func (b *Backend) Stats(ctx context.Context) (backend.Stats, error) {
+	ids, err := b.client.FindCards(ctx, "")
+	if err != nil {
+		return backend.Stats{}, err
+	}
+	due, err := b.client.FindCards(ctx, "is:due")
+	if err != nil {
+		return backend.Stats{}, err
+	}
+	reviewed, err := b.client.NumReviewsToday(ctx)
+	if err != nil {
+		return backend.Stats{}, err
+	}
+	healthErr := b.Health(ctx)
+	out := backend.Stats{
+		TotalCards:   len(ids),
+		DueToday:     len(due),
+		ReviewsToday: reviewed,
+		BackendName:  "anki",
+	}
+	if healthErr != nil {
+		out.HealthErrorText = healthErr.Error()
+	} else {
+		out.BackendHealthy = true
+	}
+	return out, nil
+}
+
+func (b *Backend) Health(ctx context.Context) error {
+	return b.client.Health(ctx)
+}

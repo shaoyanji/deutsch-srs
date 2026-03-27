@@ -1,0 +1,17 @@
+deck: Starter German
+cards:
+  - front: Guten Morgen
+    back: Good morning
+    tags: [greeting, basics]
+  - front: Wie geht's?
+    back: How are you?
+    tags: [conversation, basics]
+  - front: Danke
+    back: Thank you
+    tags: [basics]
+  - front: Entschuldigung
+    back: Excuse me / Sorry
+    tags: [basics]
+  - front: Ich lerne Deutsch.
+    back: I am learning German.
+    tags: [sentence, basics]

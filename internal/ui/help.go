@@ -1,0 +1,18 @@
+package ui
+
+import (
+	"strings"
+)
+
+func (m Model) renderHelpOverlay(base string) string {
+	lines := []string{
+		"deutsch-srs help",
+		"",
+		"Browse: j/k or arrows move, enter starts review",
+		"Review: space reveal, 1/2/3/4 grade, esc back",
+		"Add: tab switch fields, enter submit",
+		"Global: tab switch mode, ? toggle help, q quit",
+	}
+	box := m.theme.HelpBox.Render(strings.Join(lines, "\n"))
+	return base + "\n\n" + box
+}
