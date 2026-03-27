@@ -3,6 +3,9 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/example/deutsch-srs/internal/srs"
 )
 
 func (m Model) viewReview() string {
@@ -26,7 +29,12 @@ func (m Model) viewReview() string {
 	}
 
 	card := m.reviewCards[m.reviewIdx]
-	progress := fmt.Sprintf("%s  Deck: %s  Interval: %dd  Ease: %.2f", reviewQueueStatus(m.reviewIdx, len(m.reviewCards)), card.Deck, card.IntervalDays, card.Ease)
+	elapsedDays := time.Now().UTC().Sub(card.LastReviewAt).Hours() / 24.0
+	if card.LastReviewAt.IsZero() {
+		elapsedDays = 0
+	}
+	predicted := srs.PredictRecall(elapsedDays, card.StabilityDays)
+	progress := fmt.Sprintf("%s  Deck: %s  Stability(days): %.2f  Difficulty(0 easy-1 hard): %.2f  Pred. recall: %.2f", reviewQueueStatus(m.reviewIdx, len(m.reviewCards)), card.Deck, card.StabilityDays, card.Difficulty, predicted)
 	b.WriteString(m.theme.StatusLine.Render(progress) + "\n\n")
 	b.WriteString("Front\n")
 	b.WriteString(m.theme.CardFront.Render(card.Front) + "\n\n")

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -56,6 +57,12 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 			return fmt.Errorf("migrate: %w", err)
 		}
 	}
+	if err := s.ensureCardSchedulerColumns(ctx); err != nil {
+		return fmt.Errorf("migrate scheduler columns: %w", err)
+	}
+	if err := s.backfillCardSchedulerState(ctx, time.Now().UTC()); err != nil {
+		return fmt.Errorf("backfill scheduler state: %w", err)
+	}
 	return nil
 }
 
@@ -80,29 +87,32 @@ func (s *SQLiteStore) AddCard(ctx context.Context, in AddCardInput, now time.Tim
 	id := uuid.NewString()
 	ts := now.UTC()
 	card := srs.Card{
-		ID:           id,
-		Deck:         in.Deck,
-		Front:        in.Front,
-		Back:         in.Back,
-		NoteType:     in.NoteType,
-		Tags:         in.Tags,
-		DueAt:        ts,
-		IntervalDays: 0,
-		Ease:         2.5,
-		Reps:         0,
-		Lapses:       0,
-		Suspended:    false,
-		CreatedAt:    ts,
-		UpdatedAt:    ts,
+		ID:            id,
+		Deck:          in.Deck,
+		Front:         in.Front,
+		Back:          in.Back,
+		NoteType:      in.NoteType,
+		Tags:          in.Tags,
+		DueAt:         ts,
+		IntervalDays:  0,
+		Ease:          2.5,
+		StabilityDays: srs.DefaultStabilityDays,
+		Difficulty:    srs.DefaultDifficulty,
+		LastReviewAt:  ts,
+		Reps:          0,
+		Lapses:        0,
+		Suspended:     false,
+		CreatedAt:     ts,
+		UpdatedAt:     ts,
 	}
 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO cards (
-			id, deck, front, back, note_type, tags, due_at, interval_days, ease, reps, lapses, suspended, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, deck, front, back, note_type, tags, due_at, interval_days, ease, stability_days, difficulty, last_review_at, reps, lapses, suspended, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		card.ID, card.Deck, card.Front, card.Back, card.NoteType, strings.Join(card.Tags, ","),
-		card.DueAt.Format(time.RFC3339), card.IntervalDays, card.Ease, card.Reps, card.Lapses, boolToInt(card.Suspended),
-		card.CreatedAt.Format(time.RFC3339), card.UpdatedAt.Format(time.RFC3339),
+		card.DueAt.Format(time.RFC3339), card.IntervalDays, card.Ease, card.StabilityDays, card.Difficulty, card.LastReviewAt.Format(time.RFC3339),
+		card.Reps, card.Lapses, boolToInt(card.Suspended), card.CreatedAt.Format(time.RFC3339), card.UpdatedAt.Format(time.RFC3339),
 	)
 	if err != nil {
 		return srs.Card{}, err
@@ -140,7 +150,7 @@ func (s *SQLiteStore) DueCards(ctx context.Context, deck string, limit int, now 
 		limit = 20
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, reps, lapses, suspended, created_at, updated_at
+		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, stability_days, difficulty, last_review_at, reps, lapses, suspended, created_at, updated_at
 		FROM cards
 		WHERE deck = ? AND suspended = 0 AND due_at <= ?
 		ORDER BY due_at ASC, created_at ASC
@@ -158,7 +168,7 @@ func (s *SQLiteStore) SearchCards(ctx context.Context, query string, limit int) 
 	}
 	pattern := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, reps, lapses, suspended, created_at, updated_at
+		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, stability_days, difficulty, last_review_at, reps, lapses, suspended, created_at, updated_at
 		FROM cards
 		WHERE LOWER(front) LIKE ? OR LOWER(back) LIKE ? OR LOWER(tags) LIKE ? OR LOWER(deck) LIKE ?
 		ORDER BY updated_at DESC
@@ -172,7 +182,7 @@ func (s *SQLiteStore) SearchCards(ctx context.Context, query string, limit int) 
 
 func (s *SQLiteStore) AllCards(ctx context.Context) ([]srs.Card, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, reps, lapses, suspended, created_at, updated_at
+		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, stability_days, difficulty, last_review_at, reps, lapses, suspended, created_at, updated_at
 		FROM cards
 		ORDER BY created_at ASC`)
 	if err != nil {
@@ -184,7 +194,7 @@ func (s *SQLiteStore) AllCards(ctx context.Context) ([]srs.Card, error) {
 
 func (s *SQLiteStore) GetCard(ctx context.Context, id string) (srs.Card, error) {
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, reps, lapses, suspended, created_at, updated_at
+		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, stability_days, difficulty, last_review_at, reps, lapses, suspended, created_at, updated_at
 		FROM cards WHERE id = ?`, id)
 	card, err := scanCard(row)
 	if err != nil {
@@ -199,10 +209,10 @@ func (s *SQLiteStore) GetCard(ctx context.Context, id string) (srs.Card, error) 
 func (s *SQLiteStore) UpdateCardSchedule(ctx context.Context, card srs.Card) error {
 	_, err := s.db.ExecContext(ctx, `
 		UPDATE cards SET
-			due_at = ?, interval_days = ?, ease = ?, reps = ?, lapses = ?, updated_at = ?
+			due_at = ?, interval_days = ?, ease = ?, stability_days = ?, difficulty = ?, last_review_at = ?, reps = ?, lapses = ?, updated_at = ?
 		WHERE id = ?`,
-		card.DueAt.UTC().Format(time.RFC3339), card.IntervalDays, card.Ease, card.Reps, card.Lapses, card.UpdatedAt.UTC().Format(time.RFC3339),
-		card.ID,
+		card.DueAt.UTC().Format(time.RFC3339), card.IntervalDays, card.Ease, card.StabilityDays, card.Difficulty, card.LastReviewAt.UTC().Format(time.RFC3339),
+		card.Reps, card.Lapses, card.UpdatedAt.UTC().Format(time.RFC3339), card.ID,
 	)
 	return err
 }
@@ -255,11 +265,12 @@ func scanCard(scanner rowScanner) (srs.Card, error) {
 		card            srs.Card
 		dueAt, created  string
 		updatedAt, tags string
+		lastReviewAt    string
 		suspended       int
 	)
 	if err := scanner.Scan(
-		&card.ID, &card.Deck, &card.Front, &card.Back, &card.NoteType, &tags, &dueAt, &card.IntervalDays,
-		&card.Ease, &card.Reps, &card.Lapses, &suspended, &created, &updatedAt,
+		&card.ID, &card.Deck, &card.Front, &card.Back, &card.NoteType, &tags, &dueAt, &card.IntervalDays, &card.Ease,
+		&card.StabilityDays, &card.Difficulty, &lastReviewAt, &card.Reps, &card.Lapses, &suspended, &created, &updatedAt,
 	); err != nil {
 		return srs.Card{}, err
 	}
@@ -278,11 +289,137 @@ func scanCard(scanner rowScanner) (srs.Card, error) {
 	card.DueAt = d
 	card.CreatedAt = c
 	card.UpdatedAt = u
+	if lastReviewAt != "" {
+		if lr, err := time.Parse(time.RFC3339, lastReviewAt); err == nil {
+			card.LastReviewAt = lr
+		}
+	}
 	card.Suspended = suspended == 1
 	if tags != "" {
 		card.Tags = strings.Split(tags, ",")
 	}
 	return card, nil
+}
+
+func (s *SQLiteStore) ensureCardSchedulerColumns(ctx context.Context) error {
+	type col struct {
+		name string
+		sql  string
+	}
+	required := []col{
+		{name: "stability_days", sql: `ALTER TABLE cards ADD COLUMN stability_days REAL NOT NULL DEFAULT 1.0`},
+		{name: "difficulty", sql: `ALTER TABLE cards ADD COLUMN difficulty REAL NOT NULL DEFAULT 0.35`},
+		{name: "last_review_at", sql: `ALTER TABLE cards ADD COLUMN last_review_at TEXT NOT NULL DEFAULT ''`},
+	}
+	existing := map[string]bool{}
+	rows, err := s.db.QueryContext(ctx, `PRAGMA table_info(cards)`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notNull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notNull, &dflt, &pk); err != nil {
+			return err
+		}
+		existing[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, c := range required {
+		if existing[c.name] {
+			continue
+		}
+		if _, err := s.db.ExecContext(ctx, c.sql); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *SQLiteStore) backfillCardSchedulerState(ctx context.Context, now time.Time) error {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, interval_days, ease, stability_days, difficulty, last_review_at, updated_at, created_at
+		FROM cards`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	type rowData struct {
+		id           string
+		intervalDays int
+		ease         float64
+		stability    float64
+		difficulty   float64
+		lastReview   string
+		updatedAt    string
+		createdAt    string
+	}
+	var all []rowData
+	for rows.Next() {
+		var r rowData
+		if err := rows.Scan(&r.id, &r.intervalDays, &r.ease, &r.stability, &r.difficulty, &r.lastReview, &r.updatedAt, &r.createdAt); err != nil {
+			return err
+		}
+		all = append(all, r)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	for _, r := range all {
+		stability := r.stability
+		if stability <= 0 {
+			if r.intervalDays > 0 {
+				stability = float64(r.intervalDays)
+			} else {
+				stability = srs.DefaultStabilityDays
+			}
+		}
+
+		difficulty := r.difficulty
+		if difficulty < 0 || difficulty > 1 {
+			difficulty = deriveDifficultyFromEase(r.ease)
+		}
+
+		lastReviewAt := strings.TrimSpace(r.lastReview)
+		if lastReviewAt == "" {
+			if strings.TrimSpace(r.updatedAt) != "" {
+				lastReviewAt = r.updatedAt
+			} else if strings.TrimSpace(r.createdAt) != "" {
+				lastReviewAt = r.createdAt
+			} else {
+				lastReviewAt = now.UTC().Format(time.RFC3339)
+			}
+		}
+
+		if _, err := s.db.ExecContext(ctx, `
+			UPDATE cards
+			SET stability_days = ?, difficulty = ?, last_review_at = ?
+			WHERE id = ?`, stability, difficulty, lastReviewAt, r.id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deriveDifficultyFromEase(ease float64) float64 {
+	if ease <= 0 {
+		return srs.DefaultDifficulty
+	}
+	d := 0.35 + ((2.5 - ease) * 0.35)
+	if d < 0 {
+		return 0
+	}
+	if d > 1 {
+		return 1
+	}
+	return math.Round(d*1000) / 1000
 }
 
 func boolToInt(v bool) int {

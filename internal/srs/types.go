@@ -12,20 +12,23 @@ const (
 )
 
 type Card struct {
-	ID           string
-	Deck         string
-	Front        string
-	Back         string
-	NoteType     string
-	Tags         []string
-	DueAt        time.Time
-	IntervalDays int
-	Ease         float64
-	Reps         int
-	Lapses       int
-	Suspended    bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID            string
+	Deck          string
+	Front         string
+	Back          string
+	NoteType      string
+	Tags          []string
+	DueAt         time.Time
+	IntervalDays  int
+	Ease          float64
+	StabilityDays float64
+	Difficulty    float64
+	LastReviewAt  time.Time
+	Reps          int
+	Lapses        int
+	Suspended     bool
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type Deck struct {

@@ -7,7 +7,7 @@ It is built with:
 - Go
 - Bubble Tea/Bubbles/Lip Gloss
 - SQLite
-- a small deterministic SM-2-like scheduler
+- a deterministic forgetting-curve-based local scheduler
 
 ## What It Is
 
@@ -106,7 +106,7 @@ Covers:
 ## Limitations
 
 - Anki mode intentionally does not write review scheduling state back to Anki.
-- Scheduler targets practical consistency, not exact Anki parity.
+- Local scheduler uses per-card stability/difficulty with a forgetting-curve model, and is not exact Anki parity.
 - Import/export helpers are intentionally narrow (simple YAML/CSV).
 
 ## Local Import/Export (Minimal Flow)
