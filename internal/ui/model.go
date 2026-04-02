@@ -79,6 +79,10 @@ type Model struct {
 	reviewIdx   int
 	revealed    bool
 
+	// pendingAgainCard holds a card graded "Again" that should be re-queued
+	// at the end of the current session queue.
+	pendingAgainCard *srs.Card
+
 	addInputs    []textinput.Model
 	focusedInput int
 
@@ -190,6 +194,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.errText = ""
+		// Re-queue "Again" cards to the end of the session queue
+		if m.pendingAgainCard != nil {
+			m.reviewCards = append(m.reviewCards, *m.pendingAgainCard)
+			m.pendingAgainCard = nil
+		}
 		m.reviewIdx++
 		m.revealed = false
 		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
@@ -336,8 +345,12 @@ func (m Model) gradeCurrentCard(grade srs.ReviewGrade) (tea.Model, tea.Cmd) {
 	if !m.revealed {
 		return m, nil
 	}
-	cardID := m.reviewCards[m.reviewIdx].ID
-	return m, m.cmdAnswerCard(cardID, grade)
+	card := m.reviewCards[m.reviewIdx]
+	// If grading "Again", mark the card to be re-queued at the end of the session
+	if grade == srs.GradeAgain {
+		m.pendingAgainCard = &card
+	}
+	return m, m.cmdAnswerCard(card.ID, grade)
 }
 
 func (m Model) updateAdd(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
