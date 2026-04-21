@@ -3,3 +3,5 @@ bin/
 *.db-journal
 *.log
 .DS_Store
+deutsch-srs
+deutsch-srs-cli
