@@ -10,6 +10,28 @@ import (
 // One separator plus three %4s columns separated by single spaces.
 const deckRowChrome = 1 + 4 + 1 + 4 + 1 + 4 + 2
 
+// visibleWindow returns the slice of a list to render so the cursor stays on
+// screen. A search can return a hundred rows; drawing all of them pushes the
+// query line and the best hits off the top of the terminal.
+func visibleWindow(cursor, total, rows int) (start, end int) {
+	if rows < 1 {
+		rows = 1
+	}
+	if total <= rows {
+		return 0, total
+	}
+	start = cursor - rows + 1
+	if start < 0 {
+		start = 0
+	}
+	end = start + rows
+	if end > total {
+		end = total
+		start = end - rows
+	}
+	return start, end
+}
+
 func reviewQueueStatus(idx, total int) string {
 	if total <= 0 {
 		return "Queue: empty"

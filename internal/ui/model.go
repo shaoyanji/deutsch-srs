@@ -280,6 +280,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.infoText = ""
 			return m, nil
 		}
+		// Direct mode keys. Text entry is handled above, so "s" inside the search
+		// box or the add form still types an s; everywhere else these open a mode.
+		// Without them Search and Stats are unreachable: tab from Browse lands in
+		// the add form, which swallows tab for field navigation.
+		switch {
+		case key.Matches(msg, m.keys.ModeSearch):
+			if m.mode != ModeSearch {
+				m.mode = ModeSearch
+				m.searchInput.Focus()
+				m.errText = ""
+				return m, nil
+			}
+		case key.Matches(msg, m.keys.ModeAdd):
+			if m.mode != ModeAdd {
+				m.mode = ModeAdd
+				m.errText = ""
+				return m, nil
+			}
+		case key.Matches(msg, m.keys.ModeStats):
+			if m.mode != ModeStats {
+				m.mode = ModeStats
+				m.errText = ""
+				return m, m.cmdLoadStats()
+			}
+		}
+
 		if key.Matches(msg, m.keys.Tab) && m.mode != ModeAdd && m.mode != ModeSearch {
 			m.cycleMode()
 			if m.mode == ModeStats {
@@ -307,10 +333,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) cycleMode() {
 	switch m.mode {
 	case ModeBrowse:
-		m.mode = ModeAdd
-	case ModeAdd:
 		m.mode = ModeSearch
 	case ModeSearch:
+		m.mode = ModeAdd
+	case ModeAdd:
 		m.mode = ModeStats
 	case ModeStats, ModeReview:
 		m.mode = ModeBrowse

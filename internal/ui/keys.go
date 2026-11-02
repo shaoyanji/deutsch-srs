@@ -19,6 +19,9 @@ type keyMap struct {
 	NextInput  key.Binding
 	PrevInput  key.Binding
 	SubmitCard key.Binding
+	ModeSearch key.Binding
+	ModeAdd    key.Binding
+	ModeStats  key.Binding
 }
 
 func defaultKeys() keyMap {
@@ -39,6 +42,9 @@ func defaultKeys() keyMap {
 		NextInput:  key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next field")),
 		PrevInput:  key.NewBinding(key.WithKeys("shift+tab"), key.WithHelp("shift+tab", "prev field")),
 		SubmitCard: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "submit")),
+		ModeSearch: key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "search")),
+		ModeAdd:    key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "add")),
+		ModeStats:  key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "stats")),
 	}
 }
 

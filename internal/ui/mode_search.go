@@ -24,12 +24,22 @@ func (m Model) viewSearchList() string {
 		return strings.TrimRight(b.String(), "\n")
 	}
 
-	for i, c := range m.searchResults {
+	// The hint line wraps on a narrow pane, so leave it a row.
+	rows := m.height - 10
+	if rows < 3 {
+		rows = 3
+	}
+	start, end := visibleWindow(m.searchCursor, len(m.searchResults), rows)
+	for i := start; i < end; i++ {
+		c := m.searchResults[i]
 		line := fmt.Sprintf("%-16s %s", c.Deck, trimOneLine(c.Front, 30))
 		if i == m.searchCursor {
 			line = m.theme.Selected.Render(line)
 		}
 		b.WriteString(line + "\n")
+	}
+	if len(m.searchResults) > end-start {
+		b.WriteString(m.theme.Muted.Render(fmt.Sprintf("%d-%d of %d", start+1, end, len(m.searchResults))) + "\n")
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
