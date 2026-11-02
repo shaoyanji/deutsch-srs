@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	_ "modernc.org/sqlite"
 
 	"github.com/shaoyanji/deutsch-srs/internal/srs"
@@ -77,44 +76,11 @@ func (s *SQLiteStore) CardCount(ctx context.Context) (int, error) {
 }
 
 func (s *SQLiteStore) AddCard(ctx context.Context, in AddCardInput, now time.Time) (srs.Card, error) {
-	if strings.TrimSpace(in.Deck) == "" {
-		return srs.Card{}, fmt.Errorf("deck is required")
-	}
-	if strings.TrimSpace(in.Front) == "" || strings.TrimSpace(in.Back) == "" {
-		return srs.Card{}, fmt.Errorf("front and back are required")
-	}
-
-	id := uuid.NewString()
-	ts := now.UTC()
-	card := srs.Card{
-		ID:            id,
-		Deck:          in.Deck,
-		Front:         in.Front,
-		Back:          in.Back,
-		NoteType:      in.NoteType,
-		Tags:          in.Tags,
-		DueAt:         ts,
-		IntervalDays:  0,
-		Ease:          2.5,
-		StabilityDays: srs.DefaultStabilityDays,
-		Difficulty:    srs.DefaultDifficulty,
-		LastReviewAt:  ts,
-		Reps:          0,
-		Lapses:        0,
-		Suspended:     false,
-		CreatedAt:     ts,
-		UpdatedAt:     ts,
-	}
-
-	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO cards (
-			id, deck, front, back, note_type, tags, due_at, interval_days, ease, stability_days, difficulty, last_review_at, reps, lapses, suspended, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		card.ID, card.Deck, card.Front, card.Back, card.NoteType, strings.Join(card.Tags, ","),
-		card.DueAt.Format(time.RFC3339), card.IntervalDays, card.Ease, card.StabilityDays, card.Difficulty, card.LastReviewAt.Format(time.RFC3339),
-		card.Reps, card.Lapses, boolToInt(card.Suspended), card.CreatedAt.Format(time.RFC3339), card.UpdatedAt.Format(time.RFC3339),
-	)
+	card, err := newCard(in, now)
 	if err != nil {
+		return srs.Card{}, err
+	}
+	if _, err := s.db.ExecContext(ctx, insertCardSQL, cardArgs(card)...); err != nil {
 		return srs.Card{}, err
 	}
 	return card, nil

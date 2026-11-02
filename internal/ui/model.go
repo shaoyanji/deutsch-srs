@@ -578,13 +578,13 @@ func (m Model) cmdRunLocalIO(cmd ioCommand) tea.Cmd {
 				if err != nil {
 					return ioResultMsg{err: err}
 				}
-				return ioResultMsg{summary: fmt.Sprintf("Imported %d cards from YAML: %s", n, cmd.Path)}
+				return ioResultMsg{summary: fmt.Sprintf("Imported %d new cards from YAML: %s", n, cmd.Path)}
 			case "csv":
 				n, err := be.ImportCSV(context.Background(), cmd.Path)
 				if err != nil {
 					return ioResultMsg{err: err}
 				}
-				return ioResultMsg{summary: fmt.Sprintf("Imported %d cards from CSV: %s", n, cmd.Path)}
+				return ioResultMsg{summary: fmt.Sprintf("Imported %d new cards from CSV: %s", n, cmd.Path)}
 			}
 		case "export":
 			n, err := be.ExportCSV(context.Background(), cmd.Path)

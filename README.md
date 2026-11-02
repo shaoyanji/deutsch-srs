@@ -123,18 +123,42 @@ Press `Enter` on the Tags field to submit. Use `Tab` to navigate between fields.
 
 ### Import/Export
 
-In **Add** mode, use the IO command field:
+Import accepts YAML, CSV and TSV, and works out which one it is looking at:
+
+- **Format** comes from the file extension, or is sniffed from the content
+  (`.yaml`/`.yml`, `.csv`, `.tsv`, `.txt`, anything else).
+- **Delimiter** is sniffed per file, so comma, semicolon and tab separated
+  lists all load (`Hund;dog` is a valid two-column deck).
+- **Header rows** are recognised by name (`front`/`wort`/`vorn`, `back`/
+  `übersetzung`/`bedeutung`, `deck`, `tags`, `note_type`), so the columns may
+  appear in any order. With no header, the layout is
+  `deck,front,back,note_type,tags`, and a two-column file becomes `front,back`.
+- **Re-importing is safe**: a card already in the deck (same deck, same front,
+  case-insensitive) is skipped rather than duplicated.
+
+From the TUI, use the IO command field in **Add** mode:
 
 ```yaml
-# Import from YAML
+import csv ./meine-liste.csv
 import yaml ./my-deck.yaml
-
-# Import from CSV
-import csv ./my-deck.csv
-
-# Export to CSV
 export csv ./export.csv
 ```
+
+From the CLI, for bulk loads and scripting:
+
+```bash
+# Import one or more files; already-present cards are skipped
+deutsch-srs-cli import ./meine-liste.csv ./redemittel.tsv
+
+# Override the deck name, or preview without writing
+deutsch-srs-cli import ./liste.txt --deck "B2 Wortschatz" --dry-run
+
+# Allow genuine duplicates instead of skipping them
+deutsch-srs-cli import ./liste.csv --allow-duplicates
+```
+
+The CLI prints a summary (`added`, `skipped`, `invalid`) instead of every card
+id, and writes the whole file in one transaction.
 
 ## Configuration
 

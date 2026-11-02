@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/shaoyanji/deutsch-srs/internal/backend"
-	"github.com/shaoyanji/deutsch-srs/internal/importexport"
 	"github.com/shaoyanji/deutsch-srs/internal/srs"
 )
 
@@ -76,7 +75,9 @@ Commands:
   stats [--deck NAME]             Review statistics
   decks                           List decks
   search QUERY                    Search cards
-  import FILE.yaml                Import deck from YAML
+  import FILE... [--deck NAME] [--format auto|csv|tsv|yaml]
+                                  [--dry-run] [--allow-duplicates]
+                                  Import decks; cards already in the deck are skipped
 
 Environment:
   DEUTSCH_SRS_DB       Database path (default: ~/.local/share/deutsch-srs/deutsch-srs.db)
@@ -253,30 +254,77 @@ func cmdSearch(ctx context.Context, be backend.Backend, args []string) {
 	output(cards)
 }
 
-func cmdImport(ctx context.Context, be backend.Backend, args []string) {
-	if len(args) < 1 {
-		fatal("import: FILE required")
+func cmdImport(ctx context.Context, be *backend.LocalBackend, args []string) {
+	var (
+		deckOverride string
+		format       string
+		skipExisting = true
+		dryRun       bool
+		paths        []string
+	)
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--deck":
+			i++
+			if i < len(args) {
+				deckOverride = args[i]
+			}
+		case "--format":
+			i++
+			if i < len(args) {
+				format = args[i]
+			}
+		case "--allow-duplicates":
+			skipExisting = false
+		case "--dry-run":
+			dryRun = true
+		default:
+			paths = append(paths, args[i])
+		}
 	}
-	deckFile, err := importexport.LoadYAML(args[0])
-	if err != nil {
-		fatal("import: %v", err)
+	if len(paths) == 0 {
+		fatal("import: FILE required (yaml, csv or tsv)")
 	}
-	var added []string
-	for _, c := range deckFile.Cards {
-		card, err := be.AddCard(ctx, backend.AddCardInput{
-			Deck:     deckFile.Deck,
-			Front:    c.Front,
-			Back:     c.Back,
-			NoteType: c.NoteType,
-			Tags:     c.Tags,
+
+	type fileResult struct {
+		File    string `json:"file"`
+		Deck    string `json:"deck"`
+		Added   int    `json:"added"`
+		Skipped int    `json:"skipped"`
+		Invalid int    `json:"invalid"`
+	}
+	results := make([]fileResult, 0, len(paths))
+	total := fileResult{}
+	for _, path := range paths {
+		res, err := be.ImportFile(ctx, path, backend.ImportOptions{
+			DeckOverride: deckOverride,
+			Format:       format,
+			SkipExisting: skipExisting,
+			DryRun:       dryRun,
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warn: skip card %q: %v\n", c.Front, err)
-			continue
+			fatal("import %s: %v", path, err)
 		}
-		added = append(added, card.ID)
+		results = append(results, fileResult{
+			File:    res.File,
+			Deck:    res.Deck,
+			Added:   res.Added,
+			Skipped: res.Skipped,
+			Invalid: res.Invalid,
+		})
+		total.Added += res.Added
+		total.Skipped += res.Skipped
+		total.Invalid += res.Invalid
 	}
-	output(map[string]any{"deck": deckFile.Deck, "imported": len(added), "card_ids": added})
+
+	output(map[string]any{
+		"files":         results,
+		"added":         total.Added,
+		"skipped":       total.Skipped,
+		"invalid":       total.Invalid,
+		"dry_run":       dryRun,
+		"skip_existing": skipExisting,
+	})
 }
 
 // --- Helpers ---

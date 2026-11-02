@@ -2,7 +2,6 @@ package backend
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,58 +9,77 @@ import (
 	"github.com/shaoyanji/deutsch-srs/internal/store"
 )
 
-func (b *LocalBackend) ImportYAML(ctx context.Context, path string) (int, error) {
-	deckFile, err := importexport.LoadYAML(path)
+// ImportOptions controls a deck-file import.
+type ImportOptions struct {
+	DeckOverride string
+	Format       string
+	SkipExisting bool
+	DryRun       bool
+}
+
+// ImportResult reports what one file contributed.
+type ImportResult struct {
+	File    string
+	Deck    string
+	Added   int
+	Skipped int
+	Invalid int
+	DryRun  bool
+}
+
+// ImportFile loads a yaml, csv or tsv deck file and writes it in one transaction.
+func (b *LocalBackend) ImportFile(ctx context.Context, path string, opts ImportOptions) (ImportResult, error) {
+	deckFile, err := importexport.LoadDeckFile(path, importexport.LoadOptions{
+		DeckOverride: opts.DeckOverride,
+		Format:       opts.Format,
+	})
 	if err != nil {
-		return 0, err
+		return ImportResult{File: path}, err
 	}
-	count := 0
+
+	inputs := make([]store.AddCardInput, 0, len(deckFile.Cards))
 	for _, c := range deckFile.Cards {
-		_, err := b.store.AddCard(ctx, store.AddCardInput{
-			Deck:     deckFile.Deck,
+		deck := strings.TrimSpace(c.Deck)
+		if deck == "" {
+			deck = deckFile.Deck
+		}
+		inputs = append(inputs, store.AddCardInput{
+			Deck:     deck,
 			Front:    c.Front,
 			Back:     c.Back,
 			NoteType: c.NoteType,
 			Tags:     c.Tags,
-		}, b.now().UTC())
-		if err != nil {
-			return count, fmt.Errorf("import yaml card: %w", err)
-		}
-		count++
+		})
 	}
-	return count, nil
+
+	bulk, err := b.store.AddCardsBulk(ctx, inputs, b.now().UTC(), store.BulkOptions{
+		SkipExisting: opts.SkipExisting,
+		DryRun:       opts.DryRun,
+	})
+	if err != nil {
+		return ImportResult{File: path, Deck: deckFile.Deck}, err
+	}
+
+	return ImportResult{
+		File:    path,
+		Deck:    deckFile.Deck,
+		Added:   bulk.Added,
+		Skipped: bulk.Skipped,
+		Invalid: bulk.Invalid + deckFile.Skipped,
+		DryRun:  opts.DryRun,
+	}, nil
 }
 
+// ImportYAML imports a deck file, skipping cards already present.
+func (b *LocalBackend) ImportYAML(ctx context.Context, path string) (int, error) {
+	res, err := b.ImportFile(ctx, path, ImportOptions{SkipExisting: true})
+	return res.Added, err
+}
+
+// ImportCSV imports a deck file, skipping cards already present.
 func (b *LocalBackend) ImportCSV(ctx context.Context, path string) (int, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return 0, err
-	}
-	defer f.Close()
-
-	rows, err := importexport.ReadCSV(f)
-	if err != nil {
-		return 0, err
-	}
-
-	count := 0
-	for i, r := range rows {
-		if strings.TrimSpace(r.Deck) == "" || strings.TrimSpace(r.Front) == "" || strings.TrimSpace(r.Back) == "" {
-			return count, fmt.Errorf("invalid csv row %d: deck/front/back are required", i+1)
-		}
-		_, err := b.store.AddCard(ctx, store.AddCardInput{
-			Deck:     r.Deck,
-			Front:    r.Front,
-			Back:     r.Back,
-			NoteType: r.NoteType,
-			Tags:     r.Tags,
-		}, b.now().UTC())
-		if err != nil {
-			return count, fmt.Errorf("import csv row %d: %w", i+1, err)
-		}
-		count++
-	}
-	return count, nil
+	res, err := b.ImportFile(ctx, path, ImportOptions{SkipExisting: true})
+	return res.Added, err
 }
 
 func (b *LocalBackend) ExportCSV(ctx context.Context, path string) (int, error) {
