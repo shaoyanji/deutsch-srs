@@ -1,0 +1,617 @@
+deck: B2 telc Schreiben
+cards:
+  - front: "telc B2 Schriftlicher Ausdruck: die Fakten"
+    back: |
+      30 Minuten, 45 Punkte.
+      Sie wählen aus ZWEI Aufgaben eine aus:
+        A) Bitte um Informationen (auf eine Anzeige reagieren)
+        B) Beschwerde (auf ein Problem reagieren)
+      Beide werden als halbformelle E-Mail geschrieben (Sie-Form).
+      Mindestens 150 Wörter.
+      Vier Leitpunkte - bearbeiten Sie mindestens DREI ausführlich
+      (oder zwei Leitpunkte und einen eigenen Aspekt).
+      Pflicht: Betreff, Anrede, Einleitung, Schluss.
+    note_type: schreiben
+    tags: [format]
+
+  - front: "Aufgabe A und Aufgabe B: worauf reagieren Sie?"
+    back: |
+      A) Bitte um Informationen: Sie sehen eine Anzeige oder eine Website
+      (Sprachkurs, Versicherung, Reise, Gerät) und stellen Fragen dazu.
+      B) Beschwerde: Sie haben etwas gebucht oder gekauft, es lief schief,
+      und Sie schreiben an den Anbieter.
+      In BEIDEN Fällen reagieren Sie auf einen vorgegebenen Text. Beziehen
+      Sie sich ausdrücklich darauf:
+        "In Ihrer Anzeige vom 12. März habe ich gelesen, dass ..."
+        "Leider entsprach die Reise nicht der Beschreibung."
+    note_type: schreiben
+    tags: [format, typ]
+
+  - front: "Bewertung: die drei Kriterien (45 Punkte)"
+    back: |
+      I.   Aufgabenbewältigung - sind mindestens drei Leitpunkte ausführlich
+           bearbeitet, ist der Text eine passende Reaktion auf die Situation?
+      II.  Kommunikative Gestaltung - Betreff, Anrede, Gliederung, Schluss,
+           passendes Register (Sie oder du), Konnektoren.
+      III. Formale Richtigkeit - Grammatik, Satzbau, Orthografie,
+           Groß- und Kleinschreibung.
+      Die häufigsten Punktverluste: ein Leitpunkt fehlt, das Register ist
+      falsch, der Betreff fehlt.
+    note_type: schreiben
+    tags: [format, checkliste]
+
+  - front: "Pflichtbausteine einer B2-E-Mail"
+    back: |
+      Betreff
+      Anrede
+      Einleitung (Grund der E-Mail)
+      Hauptteil (drei Leitpunkte, je 2-3 Sätze)
+      Schluss (Bitte, Dank oder Erwartung)
+      Grußformel + Name
+      Fehlt der Betreff oder der Schluss, kostet das Punkte unter
+      "Kommunikative Gestaltung" - nicht erst bei der Grammatik.
+    note_type: schreiben
+    tags: [format, checkliste]
+
+  - front: "Zeitplan für die 30 Minuten"
+    back: |
+      2 Min: beide Aufgaben nur überfliegen und eine auswählen.
+             Nicht beide genau lesen - dafür ist keine Zeit.
+      3 Min: Stichworte zu drei Leitpunkten notieren (nicht vorschreiben).
+      20 Min: den endgültigen Text direkt schreiben.
+      5 Min: prüfen - alle Leitpunkte? Verb an Position 2? Anrede und Gruß
+             da? Großschreibung? Wörter zählen.
+    note_type: schreiben
+    tags: [format, strategie]
+
+  - front: "Typ 1: Bitte um Informationen (formell)"
+    back: |
+      Situation: Anzeige oder Website, Sie möchten etwas wissen und
+      vielleicht buchen.
+      Register: Sie, höflich, sachlich.
+      Typische Leitpunkte: Grund der Anfrage, Fragen zum Angebot,
+      Preis und Zahlung, Termine oder Unterkunft.
+      Strategie: drei bis vier konkrete Fragen, jede in einem eigenen
+      Absatz. Fragen Sie nach Dingen, die in der Anzeige NICHT stehen.
+    note_type: schreiben
+    tags: [typ, anfrage]
+
+  - front: "Typ 2: Beschwerde / Reklamation (formell)"
+    back: |
+      Situation: Sie haben gebucht oder gekauft, die Leistung war anders
+      als beschrieben.
+      Register: Sie, höflich, aber bestimmt - nicht wütend.
+      Typische Leitpunkte: Anlass und Bezug auf die Buchung, konkrete
+      Abweichungen, gewünschte Lösung, Konsequenz.
+      Strategie: erst sachlich schildern, dann fordern. Nie beleidigen,
+      immer konkret bleiben (Datum, Buchungsnummer, Betrag).
+    note_type: schreiben
+    tags: [typ, beschwerde]
+
+  - front: "Typ 3: halbformelle E-Mail an eine bekannte Person (Sie)"
+    back: |
+      Situation: Kursleitung, Vermieter, Kollegin, Nachbar - Sie kennen
+      die Person, aber Sie siezen sie.
+      Register: Sie, freundlich-persönlich.
+      Typische Leitpunkte: Grund oder Entschuldigung, Details (Daten,
+      Termine), Bitte um Hilfe oder Material, Rückfrage.
+      Strategie: "Liebe Frau Berger," statt "Sehr geehrte ...", aber
+      weiterhin Sie-Form und höflich.
+    note_type: schreiben
+    tags: [typ, halbformell]
+
+  - front: "Typ 4: persönliche E-Mail (du)"
+    back: |
+      Situation: Freundin, Familie. Das ist nicht die telc-B2-Aufgabe,
+      aber der beste Register-Test: hier gilt du, ein Betreff ist
+      optional, kurze Sätze und Gefühle sind erlaubt.
+      Typische Leitpunkte: reagieren (danken, gratulieren), absagen
+      und erklären, Vorschlag machen, nachfragen.
+      Falle: Wer hier "Sehr geehrte" schreibt oder siezt, mischt die
+      Register - genau das kostet in der Prüfung Punkte.
+    note_type: schreiben
+    tags: [typ, informell]
+
+  - front: "Skelett: formelle oder halbformelle E-Mail"
+    back: |
+      Betreff: [Anlass] - [Stichwort]
+      Sehr geehrte Frau [Name], / Sehr geehrte Damen und Herren,
+
+      [Einleitung: Bezug auf den Text + Grund, 1-2 Sätze]
+
+      [Leitpunkt 1: 2-3 Sätze]
+
+      [Leitpunkt 2: 2-3 Sätze]
+
+      [Leitpunkt 3: 2-3 Sätze]
+
+      [Schluss: Bitte, Dank oder Erwartung, 1-2 Sätze]
+
+      Mit freundlichen Grüßen
+      [Vorname Name]
+    note_type: schreiben
+    tags: [skelett]
+
+  - front: "Skelett: persönliche E-Mail (du)"
+    back: |
+      Liebe/Lieber [Name],
+
+      [Reaktion: danken, gratulieren, sich entschuldigen]
+
+      [Leitpunkt 1: 2-3 Sätze]
+
+      [Leitpunkt 2: 2-3 Sätze]
+
+      [Leitpunkt 3: 2-3 Sätze]
+
+      [Vorschlag oder Frage an sie/ihn]
+
+      Liebe Grüße
+      [Vorname]
+    note_type: schreiben
+    tags: [skelett, informell]
+
+  - front: "Anrede und Grußformel: drei Register"
+    back: |
+      FORMELL (Firma, Behörde, unbekannt):
+        Sehr geehrte Damen und Herren,
+        Sehr geehrte Frau Dr. Berger,
+        Mit freundlichen Grüßen
+      HALBFORMELL (bekannt, aber Sie):
+        Liebe Frau Berger, / Guten Tag Herr Neumann,
+        Freundliche Grüße / Mit besten Grüßen
+      INFORMELL (du):
+        Liebe Julia, / Hallo Tim,
+        Liebe Grüße / Bis bald / Alles Liebe
+      Regel: Anrede und Grußformel gehören zum selben Register.
+    note_type: schreiben
+    tags: [skelett, register]
+
+  - front: "Betreff: Regeln und Beispiele"
+    back: |
+      Kurz, konkret, ohne Punkt am Ende. Anlass plus Stichwort.
+        Anfrage zum Intensivkurs B2 in Wien
+        Beschwerde über meine Sprachreise (Buchung 4471)
+        Abwesenheit im Abendkurs B2 - Bitte um Material
+      Kein Betreff bei einer privaten E-Mail an Freunde nötig.
+      Nie: "Betreff: Wichtig" oder "Betreff: Frage" - das sagt nichts.
+    note_type: schreiben
+    tags: [skelett, anfrage, beschwerde]
+
+  - front: "Anfrage: Einleitung und Bezug"
+    back: |
+      In Ihrer Anzeige vom 12. März habe ich gelesen, dass ...
+      Auf Ihrer Website bin ich auf den Intensivkurs B2 aufmerksam geworden.
+      Ich interessiere mich sehr für ..., weil ich im Herbst die Prüfung
+      ablegen möchte.
+      Ich habe eine Frage zu dem Angebot, das Sie zurzeit bewerben.
+    note_type: schreiben
+    tags: [redemittel-anfrage]
+
+  - front: "Anfrage: um Informationen bitten"
+    back: |
+      Könnten Sie mir bitte mitteilen, wie viele Teilnehmer in einer Gruppe sind?
+      Ich würde gern wissen, ob ein Einstufungstest stattfindet.
+      Außerdem hätte ich eine Frage zur Unterkunft.
+      Bitte senden Sie mir weitere Informationen zu den Terminen zu.
+      Mich würde interessieren, ob ein Einzelzimmer möglich ist.
+    note_type: schreiben
+    tags: [redemittel-anfrage]
+
+  - front: "Anfrage: Preis, Rabatt und Zahlung"
+    back: |
+      Im April kann ich den Frühbucherrabatt vermutlich nutzen.
+      Bitte teilen Sie mir mit, ob eine Ratenzahlung möglich ist.
+      Welche Kosten kommen für die Unterkunft noch hinzu?
+      Ist im Preis auch das Lehrmaterial enthalten?
+    note_type: schreiben
+    tags: [redemittel-anfrage]
+
+  - front: "Anfrage: Schluss"
+    back: |
+      Vielen Dank im Voraus für Ihre Rückmeldung.
+      Ich freue mich auf Ihre Antwort und verbleibe
+      mit freundlichen Grüßen ...
+      Für eine kurze Antwort wäre ich Ihnen sehr dankbar.
+    note_type: schreiben
+    tags: [redemittel-anfrage]
+
+  - front: "Beschwerde: Einleitung und Bezug"
+    back: |
+      Am 3. Mai habe ich bei Ihnen ... gebucht (Buchungsnummer 4471).
+      Leider entsprach die Reise in mehreren Punkten nicht der Beschreibung,
+      deshalb schreibe ich Ihnen heute.
+      Ich wende mich an Sie, weil ich mit der gebuchten Leistung nicht
+      zufrieden war.
+      Hiermit beschwere ich mich über den Kurs vom 5. bis 9. Juni.
+    note_type: schreiben
+    tags: [redemittel-beschwerde]
+
+  - front: "Beschwerde: ein Problem sachlich schildern"
+    back: |
+      Leider musste ich feststellen, dass das Zimmer nicht gereinigt war.
+      Entgegen der Beschreibung fand der Unterricht nicht am Vormittag statt.
+      Statt des gebuchten Einzelzimmers erhielt ich ein Doppelzimmer.
+      Der Kurs begann mit 40 Minuten Verspätung, und die Lehrerin fehlte
+      an zwei Tagen ganz.
+    note_type: schreiben
+    tags: [redemittel-beschwerde]
+
+  - front: "Beschwerde: Kritik höflich, aber klar"
+    back: |
+      Das entsprach nicht dem, was ich gebucht hatte.
+      Dafür habe ich keinerlei Verständnis.
+      Ich finde es nicht akzeptabel, dass ...
+      Besonders ärgerlich war, dass ...
+      Hier handelt es sich eindeutig um einen Fehler Ihrerseits.
+    note_type: schreiben
+    tags: [redemittel-beschwerde]
+
+  - front: "Beschwerde: eine Lösung fordern"
+    back: |
+      Ich erwarte, dass Sie mir den Differenzbetrag zurückerstatten.
+      Ich bitte Sie, mir den vollen Preis zu erlassen.
+      Ich schlage eine Rückzahlung von 200 Euro vor.
+      Bitte teilen Sie mir bis zum 30. Juni mit, wie Sie das Problem lösen.
+    note_type: schreiben
+    tags: [redemittel-beschwerde]
+
+  - front: "Beschwerde: Konsequenz androhen (höflich)"
+    back: |
+      Sollten wir uns nicht einigen, sehe ich mich gezwungen, rechtlichen
+      Rat einzuholen.
+      Andernfalls werde ich meine Bewertung öffentlich veröffentlichen.
+      Ich hoffe, dass wir das ohne weitere Schritte klären können.
+      Wichtig: sachlich bleiben - eine Drohung ohne Höflichkeit wirkt
+      unseriös und kostet Punkte.
+    note_type: schreiben
+    tags: [redemittel-beschwerde]
+
+  - front: "Beschwerde: Schluss"
+    back: |
+      Ich bedanke mich im Voraus für Ihre Rückmeldung.
+      Ich erwarte Ihre Antwort bis Ende der Woche.
+      Vielen Dank für Ihr Verständnis und Ihre Bemühungen.
+      Mit freundlichen Grüßen ...
+    note_type: schreiben
+    tags: [redemittel-beschwerde]
+
+  - front: "Halbformell: Einleitung an eine bekannte Person"
+    back: |
+      Entschuldigen Sie bitte, dass ich mich erst heute melde.
+      Ich hoffe, es passt Ihnen, dass ich Ihnen direkt schreibe.
+      Wie Sie vielleicht wissen, besuche ich seit September Ihren Kurs.
+      Ich wende mich heute mit einer Bitte an Sie.
+    note_type: schreiben
+    tags: [redemittel-halbformell]
+
+  - front: "Halbformell: um einen Gefallen bitten"
+    back: |
+      Könnten Sie mir das Material der letzten Stunden zuschicken?
+      Würde es Ihnen etwas ausmachen, mir die Aufgaben zu mailen?
+      Ich würde die Schreibaufgabe gern selbst verfassen und Ihnen zur
+      Korrektur schicken, wenn Ihnen das nicht zu viel Mühe macht.
+      Gibt es die Möglichkeit, den Termin in einem anderen Kurs nachzuholen?
+    note_type: schreiben
+    tags: [redemittel-halbformell]
+
+  - front: "Halbformell: Grund nennen und sich entschuldigen"
+    back: |
+      Leider muss ich Ihnen mitteilen, dass ich an drei Terminen fehlen werde.
+      Aus beruflichen Gründen kann ich am 6., 13. und 20. Juni nicht kommen.
+      Es tut mir leid, dass ich Ihnen so kurzfristig absagen muss.
+      Ich ärgere mich sehr darüber, weil ich gut vorankommen möchte.
+    note_type: schreiben
+    tags: [redemittel-halbformell]
+
+  - front: "Informell: Einleitung und reagieren"
+    back: |
+      Ich habe gerade deine E-Mail gelesen und mich riesig gefreut.
+      Herzlichen Glückwunsch zur Hochzeit!
+      Danke für die Einladung - ich freue mich sehr darüber.
+      Es tut mir wirklich leid, dass ich mich so lange nicht gemeldet habe.
+    note_type: schreiben
+    tags: [redemittel-informell]
+
+  - front: "Informell: absagen und erklären"
+    back: |
+      Leider muss ich dir etwas Unangenehmes schreiben: Am 15. Juli kann ich
+      nicht kommen.
+      Genau in dieser Woche habe ich meine Abschlussprüfung.
+      Es passt mir leider überhaupt nicht, aber ich schaffe es nicht.
+      Ich hoffe, du bist mir nicht böse.
+    note_type: schreiben
+    tags: [redemittel-informell]
+
+  - front: "Informell: Vorschlag und Frage"
+    back: |
+      Wie wäre es, wenn wir uns stattdessen im August treffen?
+      Wir könnten auch einfach mal lange telefonieren.
+      Sag mal, brauchst du noch Hilfe bei der Vorbereitung?
+      Meld dich doch, wenn du Zeit hast!
+    note_type: schreiben
+    tags: [redemittel-informell]
+
+  - front: "Meinung äußern (B2-Varianten)"
+    back: |
+      Meiner Meinung nach sollte man Handys in der Schule erlauben.
+      Ich bin der Ansicht, dass ...
+      Aus meiner Sicht spricht vieles dafür, dass ...
+      Ich halte es für sinnvoll, ... zu ...
+      Ich bezweifle, dass ... / Ich bin davon überzeugt, dass ...
+    note_type: schreiben
+    tags: [redemittel-meinung]
+
+  - front: "Argumentieren: abwägen und gewichten"
+    back: |
+      Einerseits ..., andererseits ...
+      Zwar ..., aber ...
+      Das hat den Vorteil, dass ..., allerdings ...
+      Ein weiteres Argument dafür ist, dass ...
+      Im Gegensatz dazu steht die Tatsache, dass ...
+      Deshalb komme ich zu dem Ergebnis, dass ...
+    note_type: schreiben
+    tags: [redemittel-meinung]
+
+  - front: "Konnektoren, die in einer B2-E-Mail Punkte bringen"
+    back: |
+      Grund:        weil, da, deshalb, aus diesem Grund
+      Gegensatz:    aber, jedoch, trotzdem, obwohl, dennoch
+      Ziel:         damit, um ... zu, sodass
+      Zeit:         während, nachdem, bevor, sobald
+      Ergänzung:    außerdem, zusätzlich, nicht nur ... sondern auch
+      Folge:        deshalb, daher, folglich, sonst
+      Bedingung:    wenn, falls, sollten wir ...
+    note_type: schreiben
+    tags: [grammatik]
+
+  - front: "Satzstellung nach Konnektor (Prüfungsfalle)"
+    back: |
+      Position 1, Verb Position 2:
+        Deshalb SCHREIBE ich Ihnen heute.
+        Trotzdem KANN ich nicht kommen.
+        Außerdem HABE ich eine Frage.
+      Nebensatz, Verb am Ende:
+        Ich schreibe Ihnen, WEIL die Reise nicht der Beschreibung ENTSPRACH.
+        OBWOHL ich mich angemeldet habe, KONNTE ich nicht teilnehmen.
+      um ... zu + Infinitiv am Ende:
+        Ich komme früher, UM noch einen Platz ZU bekommen.
+    note_type: schreiben
+    tags: [grammatik]
+
+  - front: |
+      Aufgabe A (Anfrage): Anzeige eines Sprachinstituts
+      "Deutsch lernen in Wien: Intensivkurs B2, 4 Wochen, 20 Stunden pro Woche,
+      Unterkunft im Studentenwohnheim, 1.290 Euro, Frühbucherrabatt bis 30. April."
+      Schreiben Sie eine E-Mail an das Institut und bearbeiten Sie mindestens
+      drei Leitpunkte:
+      - Grund Ihrer Anfrage und Ihr Kursziel
+      - Fragen zum Kurs (Gruppengröße, Prüfungsvorbereitung)
+      - Fragen zur Unterkunft
+      - Frühbucherrabatt und Zahlungsweise
+    back: |
+      Planen Sie: Betreff, Anrede, Einleitung mit Bezug auf die Anzeige,
+      drei Absätze (je ein Leitpunkt), Schluss mit Dank, Grußformel.
+      Denken Sie daran: drei konkrete Fragen, die NICHT in der Anzeige stehen.
+      Musterlösung: siehe Karte "Musterlösung A".
+    note_type: schreiben
+    tags: [aufgabe, anfrage]
+
+  - front: |
+      Aufgabe B (Beschwerde): Sprachreise nach Wien
+      Sie haben bei "Sprachreisen Wels" gebucht: zwei Wochen, Einzelzimmer,
+      Kurs am Vormittag. Vor Ort: Doppelzimmer, Zimmer nicht gereinigt,
+      Kurs jeden Abend von 18 bis 21 Uhr.
+      Schreiben Sie eine E-Mail an das Reisebüro und bearbeiten Sie
+      mindestens drei Leitpunkte:
+      - Anlass und Bezug auf Ihre Buchung
+      - zwei konkrete Abweichungen
+      - wie Sie sich die Lösung vorstellen
+      - was Sie tun, wenn es keine Einigung gibt
+    back: |
+      Reihenfolge: erst sachlich schildern (was war gebucht, was war
+      tatsächlich), dann fordern (Betrag nennen), dann die Konsequenz
+      höflich androhen, dann Grußformel.
+      Konkret werden: Datum, Buchungsnummer, Uhrzeit, Betrag.
+      Musterlösung: siehe Karte "Musterlösung B".
+    note_type: schreiben
+    tags: [aufgabe, beschwerde]
+
+  - front: |
+      Aufgabe C (halbformell): Abwesenheit im Abendkurs
+      Sie besuchen den Abendkurs "Deutsch für den Beruf" bei Frau Berger.
+      Wegen einer Dienstreise fehlen Sie an drei Terminen.
+      Schreiben Sie Frau Berger und bearbeiten Sie mindestens drei Leitpunkte:
+      - Grund Ihrer E-Mail und Entschuldigung
+      - welche Termine betroffen sind
+      - Bitte um Material und Ersatzaufgaben
+      - Frage, ob ein Nachholen möglich ist
+    back: |
+      Register: Sie, aber freundlich - "Liebe Frau Berger," ist hier
+      passend, "Sehr geehrte" wäre zu distanziert.
+      Nennen Sie konkrete Daten. Bitten Sie um etwas Bestimmtes
+      (Material, Korrektur, Nachholtermin).
+      Musterlösung: siehe Karte "Musterlösung C".
+    note_type: schreiben
+    tags: [aufgabe, halbformell]
+
+  - front: |
+      Aufgabe D (informell): Absage an eine Freundin
+      Ihre Freundin Julia heiratet am 15. Juli und lädt Sie ein.
+      Sie können nicht kommen.
+      Antworten Sie ihr und bearbeiten Sie mindestens drei Leitpunkte:
+      - für die Einladung bedanken und gratulieren
+      - erklären, warum Sie nicht kommen können
+      - vorschlagen, wie Sie sich trotzdem treffen
+      - fragen, ob Sie bei der Vorbereitung helfen können
+    back: |
+      Register: du, kurze Sätze, Gefühle erlaubt, kein Betreff nötig.
+      Die Absage kommt nach der Freude, nicht davor: erst gratulieren,
+      dann absagen, dann ein Ersatzangebot machen.
+      Musterlösung: siehe Karte "Musterlösung D".
+    note_type: schreiben
+    tags: [aufgabe, informell]
+
+  - front: "Musterlösung A (Anfrage, ca. 170 Wörter)"
+    back: |
+      Betreff: Anfrage zum Intensivkurs B2 in Wien
+
+      Sehr geehrte Frau Hofer,
+
+      in der Zeitung habe ich Ihre Anzeige für den Intensivkurs B2 in Wien
+      gelesen. Ich interessiere mich sehr für diesen Kurs, weil ich im Herbst
+      die Prüfung telc Deutsch B2 ablegen möchte. Deshalb ist mir wichtig,
+      dass der Unterricht gezielt auf diese Prüfung vorbereitet.
+
+      Leider finde ich in Ihrer Anzeige keine Angaben zur Gruppengröße.
+      Könnten Sie mir bitte mitteilen, wie viele Teilnehmerinnen und
+      Teilnehmer in einer Gruppe sind und ob am Anfang ein Einstufungstest
+      stattfindet? Außerdem würde ich gern wissen, ob der Kurs auch die
+      schriftliche Prüfung trainiert, also das Schreiben von E-Mails.
+
+      Zu der Unterkunft hätte ich ebenfalls zwei Fragen: Liegt das
+      Studentenwohnheim in der Nähe des Instituts oder muss ich mit
+      öffentlichen Verkehrsmitteln fahren? Und ist ein Einzelzimmer gegen
+      Aufpreis möglich?
+
+      Im April kann ich vermutlich den Frühbucherrabatt nutzen. Bitte teilen
+      Sie mir mit, ob auch eine Ratenzahlung möglich ist.
+
+      Vielen Dank im Voraus für Ihre Rückmeldung.
+
+      Mit freundlichen Grüßen
+      Ana Kovac
+    note_type: schreiben
+    tags: [musterlösung, anfrage]
+
+  - front: "Musterlösung B (Beschwerde, ca. 190 Wörter)"
+    back: |
+      Betreff: Beschwerde über meine Sprachreise nach Wien (Buchung 4471)
+
+      Sehr geehrte Damen und Herren,
+
+      am 3. Mai habe ich bei Ihnen eine Sprachreise nach Wien gebucht: zwei
+      Wochen, Einzelzimmer und Kurs am Vormittag. Leider entsprach die Reise
+      in mehreren Punkten nicht der Beschreibung, deshalb schreibe ich Ihnen
+      heute.
+
+      Erstens wurde mir kein Einzelzimmer zur Verfügung gestellt. Ich musste
+      mir das Zimmer mit einer anderen Teilnehmerin teilen, die erst um
+      Mitternacht ankam. Außerdem war das Zimmer bei meiner Ankunft nicht
+      gereinigt, im Bad lag noch ein Handtuch der vorigen Gäste.
+
+      Zweitens fand der Unterricht nicht am Vormittag statt, sondern jeden
+      Abend von 18 bis 21 Uhr. Nach einem langen Tag in der Stadt war ich so
+      müde, dass ich dem Kurs kaum folgen konnte. Genau deswegen hatte ich
+      mich für den Vormittagskurs entschieden.
+
+      Ich erwarte, dass Sie mir die Differenz zwischen Doppel- und
+      Einzelzimmer zurückerstatten und mir für den ausgefallenen
+      Vormittagsunterricht einen Teil des Preises erlassen. Insgesamt schlage
+      ich eine Rückzahlung von 200 Euro vor.
+
+      Sollten wir uns nicht einigen, sehe ich mich gezwungen, meine Bewertung
+      zu veröffentlichen und rechtlichen Rat einzuholen.
+
+      Mit freundlichen Grüßen
+      Ana Kovac
+    note_type: schreiben
+    tags: [musterlösung, beschwerde]
+
+  - front: "Musterlösung C (halbformell, ca. 180 Wörter)"
+    back: |
+      Betreff: Abwesenheit im Abendkurs B2 - Bitte um Material
+
+      Liebe Frau Berger,
+
+      entschuldigen Sie bitte, dass ich mich erst heute melde. Ich besuche
+      seit September Ihren Abendkurs "Deutsch für den Beruf" und habe bisher
+      keinen Termin versäumt. Leider muss ich Ihnen mitteilen, dass ich in
+      den nächsten drei Wochen aus beruflichen Gründen an mehreren Abenden
+      fehlen werde: Eine Kollegin ist erkrankt, und ich übernehme ihre
+      Schichten.
+
+      Konkret betroffen sind der 6., der 13. und der 20. Juni. Ich ärgere
+      mich sehr darüber, weil ich gerade bei den Bewerbungsschreiben gut
+      vorankommen möchte.
+
+      Deshalb meine Frage: Könnten Sie mir das Material und die Aufgaben der
+      drei Abende zuschicken, damit ich zu Hause nacharbeiten kann? Ich
+      würde die Schreibaufgaben auch gern selbst verfassen und Ihnen zur
+      Korrektur schicken, wenn Ihnen das nicht zu viel Mühe macht.
+
+      Gibt es außerdem die Möglichkeit, einen der Termine in einem anderen
+      Kurs nachzuholen?
+
+      Vielen Dank für Ihr Verständnis und Ihre Hilfe.
+
+      Mit freundlichen Grüßen
+      Ana Kovac
+    note_type: schreiben
+    tags: [musterlösung, halbformell]
+
+  - front: "Musterlösung D (informell, ca. 170 Wörter)"
+    back: |
+      Liebe Julia,
+
+      ich habe gerade deine E-Mail gelesen und musste erst einmal lachen -
+      und dann habe ich mich riesig gefreut! Herzlichen Glückwunsch zur
+      Hochzeit! Ich wünsche euch beiden von Herzen alles Gute und hoffe,
+      dass ihr eine wunderschöne Feier habt.
+
+      Leider muss ich dir aber etwas Unangenehmes schreiben: Am 15. Juli kann
+      ich nicht kommen. Genau in dieser Woche habe ich meine
+      Abschlussprüfung an der Uni, und die mündliche Prüfung ist am 16.
+      Es tut mir wirklich leid, weil ich so gern dabei gewesen wäre.
+
+      Wie wäre es, wenn wir uns stattdessen im August treffen? Ich könnte
+      ein paar Tage zu dir kommen, wir könnten in Ruhe frühstücken, und du
+      zeigst mir die Fotos. Oder wir telefonieren einfach mal lange - das
+      ist zwar nicht dasselbe, aber besser als nichts.
+
+      Sag mal, brauchst du noch Hilfe bei der Vorbereitung? Ich kann gern
+      beim Einladungen-Schreiben helfen oder am Telefon mit dir die Sitzordnung
+      besprechen.
+
+      Ich denke an dich und drücke dich ganz fest!
+
+      Liebe Grüße
+      Ana
+    note_type: schreiben
+    tags: [musterlösung, informell]
+
+  - front: "Die sechs häufigsten Fehler"
+    back: |
+      1. Nur zwei Leitpunkte bearbeitet - mindestens drei braucht es.
+      2. Kein Betreff, keine Anrede oder kein Schluss.
+      3. Register gemischt: "du" im formellen Brief oder "Sie" im
+         freundschaftlichen.
+      4. Zu wenige Wörter (unter 150) oder ein vorgeschriebener Text,
+         der abgetippt wird.
+      5. Auswendig gelernte Passagen, die nicht zur Aufgabe passen - die
+         Bewertung erkennt das und es bringt keine Punkte.
+      6. Verb an der falschen Position nach "deshalb", "trotzdem", "weil".
+    note_type: schreiben
+    tags: [checkliste]
+
+  - front: "Checkliste: 5 Minuten vor der Abgabe"
+    back: |
+      [ ] Sind drei Leitpunkte ausführlich bearbeitet (je 2-3 Sätze)?
+      [ ] Gibt es Betreff, Anrede, Einleitung, Schluss, Grußformel?
+      [ ] Ist das Register durchgehend richtig (du oder Sie)?
+      [ ] Steht das Verb nach "deshalb/trotzdem" an Position 2?
+      [ ] Steht das Verb im Nebensatz am Ende?
+      [ ] Sind alle Nomen groß geschrieben, alle Umlaute gesetzt?
+      [ ] Mindestens 150 Wörter?
+    note_type: schreiben
+    tags: [checkliste]
+
+  - front: "Wörter zählen - und was 150 Wörter bedeuten"
+    back: |
+      150 Wörter sind etwa 15 bis 18 Zeilen von Hand.
+      Rechnen Sie mit rund 15 Wörtern pro Satz: das sind etwa 10 Sätze,
+      also Einleitung (2) + drei Leitpunkte (je 2-3) + Schluss (1-2).
+      Zählen Sie am Ende grob in Fünfergruppen - nicht Wort für Wort,
+      dafür fehlt die Zeit.
+    note_type: schreiben
+    tags: [strategie]

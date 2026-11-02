@@ -160,6 +160,24 @@ deutsch-srs-cli import ./liste.csv --allow-duplicates
 The CLI prints a summary (`added`, `skipped`, `invalid`) instead of every card
 id, and writes the whole file in one transaction.
 
+## Bundled decks
+
+| File | Contents |
+|------|----------|
+| `decks/starter.yaml` | A handful of first sentences, seeded on first run |
+| `decks/b2-schreiben.yaml` | B2 telc writing preparation: 44 cards |
+
+`decks/b2-schreiben.yaml` covers the writing subtest (30 minutes, at least 150
+words, 45 points): the exam facts and the three rating criteria, the four
+task types with a worked prompt each, a letter/email skeleton, Redemittel
+grouped by task and function, a grammar card on connector word order, a
+four-item error checklist, and one full model answer per task type.
+
+```bash
+# Load it in one transaction; safe to re-run, existing cards are skipped
+deutsch-srs-cli import ./decks/b2-schreiben.yaml
+```
+
 ## Configuration
 
 ### Command-Line Flags
@@ -198,7 +216,7 @@ deutsch-srs
 │   ├── srs/              # Spaced repetition scheduler
 │   ├── anki/             # AnkiConnect client
 │   └── importexport/     # YAML/CSV helpers
-└── decks/                # Sample decks
+└── decks/                # Bundled decks (starter vocabulary, B2 telc writing)
 ```
 
 ## Development
