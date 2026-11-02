@@ -1,0 +1,36 @@
+# Spellings that are grammar, not vocabulary — excluded from the bundled
+# Wortschatz decks with `-exclude`.
+#
+# Every entry here is a word Wiktionary files as a noun, adjective or verb whose
+# frequency rank really belongs to a particle, adverb, interjection or auxiliary
+# form spelled the same. The card the builder would make is metalinguistic: "Ja
+# -> a yes", "Habe -> belongings", "Würde -> dignity". Teaching those as
+# vocabulary teaches the learner nothing they cannot already read.
+#
+# Matching is case-insensitive on the card's front, so `ja` also drops `Ja`.
+# This list is deliberately short and hand-picked: the rule that would generate
+# it ("the lowercase spelling is a function word") also buries der Weg, der Tag,
+# die Zeit and der Morgen, whose grammar homographs are just as common as they
+# are. A word belongs here only when the content reading is the quotation and
+# the grammar reading is the usage.
+ja
+nein
+hier
+mal
+habe
+hast
+muss
+soll
+würde
+jetzt
+heute
+zurück
+los
+bitte
+danke
+hallo
+ach
+okay
+so
+sehr
+sondern

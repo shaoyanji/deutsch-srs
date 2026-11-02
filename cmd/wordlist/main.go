@@ -31,6 +31,8 @@ func main() {
 		maxGlos    = flag.Int("max-gloss", 120, "trim translations to this many characters")
 		unrank     = flag.Bool("allow-unranked", false, "keep lemmas the frequency list has never seen")
 		stat       = flag.Bool("stats", true, "print drop counts and a sample")
+		exclude    = flag.String("exclude", "", "file of spellings to drop whatever their part of speech, one per line")
+		content    = flag.Bool("content-only", false, "drop cards whose rank belongs to another word with the same spelling")
 	)
 	flag.Parse()
 
@@ -79,6 +81,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	excluded, err := loadExclude(*exclude)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "read exclude list: %v\n", err)
+		os.Exit(1)
+	}
+
 	kaikkiFile, err := os.Open(*kaikki)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "open kaikki extract: %v\n", err)
@@ -92,6 +100,8 @@ func main() {
 		Limit:         *limit,
 		MaxGloss:      *maxGlos,
 		Level:         *level,
+		Exclude:       excluded,
+		ContentOnly:   *content,
 	})
 	kaikkiFile.Close()
 	if err != nil {
@@ -127,9 +137,10 @@ func report(deckName, path string, floor, ceiling int, stats wordlist.Stats, car
 	}
 	fmt.Printf("kept %d cards from %d entries\n", stats.Kept, stats.Entries)
 	fmt.Printf("  dropped: %d wrong part of speech, %d inflected forms, %d without a translation,\n"+
-		"           %d unranked, %d too rare, %d too common, %d no senses, %d duplicate headwords, %d unparsable lines\n",
+		"           %d unranked, %d too rare, %d too common, %d no senses, %d duplicate headwords, %d unparsable lines,\n"+
+		"           %d excluded by the word list, %d whose rank belongs to another word\n",
 		stats.WrongPos, stats.FormOf, stats.NoGloss, stats.Unranked, stats.TooRare, stats.TooCommon,
-		stats.NoSense, stats.Duplicate, stats.Unparsable)
+		stats.NoSense, stats.Duplicate, stats.Unparsable, stats.Excluded, stats.Shadowed)
 	if stats.Demoted > 0 {
 		sample := make([]string, 0, 5)
 		for i := len(cards) - 1; i >= 0 && len(sample) < 5; i-- {
@@ -193,4 +204,25 @@ func splitList(raw string) []string {
 		}
 	}
 	return out
+}
+
+// loadExclude reads a word list: one spelling per line, blank lines and # comments
+// skipped. Matching is case-insensitive, so "ja" also drops the card "Ja".
+func loadExclude(path string) (map[string]bool, error) {
+	if path == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]bool, 64)
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		out[strings.ToLower(line)] = true
+	}
+	return out, nil
 }

@@ -190,15 +190,19 @@ does not rebuild it.
 | File | Cards | Contents |
 |------|-------|----------|
 | `decks/starter.yaml` | 6 | A handful of first sentences, seeded on first run |
-| `decks/wortschatz-a1.yaml` | 341 | Vocabulary, frequency ranks 1-600 |
-| `decks/wortschatz-a2.yaml` | 537 | Vocabulary, frequency ranks 601-1500 |
-| `decks/wortschatz-b1.yaml` | 834 | Vocabulary, frequency ranks 1501-3000 |
-| `decks/wortschatz-b2.yaml` | 1488 | Vocabulary, frequency ranks 3001-6000 |
+| `decks/wortschatz-a1.yaml` | 214 | Vocabulary, frequency ranks 1-600 |
+| `decks/wortschatz-a2.yaml` | 467 | Vocabulary, frequency ranks 601-1500 |
+| `decks/wortschatz-b1.yaml` | 762 | Vocabulary, frequency ranks 1501-3000 |
+| `decks/wortschatz-b2.yaml` | 1418 | Vocabulary, frequency ranks 3001-6000 |
 | `decks/b2-schreiben.yaml` | 44 | B2 telc writing preparation |
 
 The four word decks are bands, not nesting levels: each one starts where the
-previous ended, so importing all four studies every word exactly once and adds
-up to the same 3,200 cards as a single cumulative B2 deck (`-cumulative`).
+previous ended, so importing all four studies every word exactly once — 2,861
+cards, no word in two levels. They hold nouns, verbs and adjectives only:
+grammar belongs in a grammar reference, not in a vocabulary deck, so articles,
+pronouns, prepositions, conjunctions and adverbs are filtered out by part of
+speech, and the handful of function words Wiktionary files as nouns (`Ja` = "a
+yes", `Habe` = "belongings", `Würde` = "dignity") are excluded by spelling.
 
 `decks/b2-schreiben.yaml` covers the writing subtest (30 minutes, at least 150
 words, 45 points): the exam facts and the three rating criteria, the four
@@ -227,10 +231,14 @@ curl -L -o de_full.txt \
   https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_full.txt
 
 # A1 to B2: each level is its own frequency band (a1=1-600, a2=601-1500,
-# b1=1501-3000, b2=3001-6000), so the decks do not repeat each other
+# b1=1501-3000, b2=3001-6000), so the decks do not repeat each other.
+# -pos keeps nouns, verbs and adjectives only; -exclude drops the function words
+# Wiktionary files as nouns; -content-only drops cards whose rank belongs to
+# another word with the same spelling.
 for lvl in a1 a2 b1 b2; do
   go run ./cmd/wordlist -kaikki kaikki-de.jsonl -freq de_full.txt \
-    -out decks/wortschatz-$lvl.yaml -deck "Wortschatz ${lvl^^}" -level $lvl
+    -out decks/wortschatz-$lvl.yaml -deck "Wortschatz ${lvl^^}" -level $lvl \
+    -pos noun,verb,adj -content-only -exclude decks/grammar-words.txt
 done
 
 # Load it; re-running is safe
@@ -247,6 +255,8 @@ deutsch-srs-cli import ./decks/wortschatz-b1.yaml
 | `-max-rank` | drop lemmas rarer than this rank (overrides `-level` when smaller) |
 | `-max-gloss` | trim translations to this many characters (default 120) |
 | `-allow-unranked` | keep lemmas the frequency list never saw, ordered last |
+| `-exclude` | file of spellings to drop whatever their part of speech (case-insensitive), one per line |
+| `-content-only` | drop cards whose rank belongs to another word with the same spelling, instead of keeping them at the end |
 
 The build reports what it dropped, so a deck can be audited instead of trusted.
 Entries are rejected when they are inflected forms (`ist`, `Häuser`), when a
