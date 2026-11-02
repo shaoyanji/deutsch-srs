@@ -272,10 +272,12 @@ reading that Wiktionary marks rare, slang or archaic does not shadow anything
 (`Frau` outranks the rare pronoun `frau`), and an ordinary adjective does not lose
 its rank to a preposition it happens to be spelled like (`lang`).
 
-Adverbs are worth knowing about: they are in the default set because `gestern`
-and `immer` are vocabulary, but `mit`, `aber` and `so` are filed as adverbs in
-Wiktionary too, and their cards are grammar rather than vocabulary. Build with
-`-pos noun,verb,adj` if you want content words only.
+Adverbs are worth knowing about: they are in the default part-of-speech set
+because `gestern` and `immer` are vocabulary, but `mit`, `aber` and `so` are filed
+as adverbs in Wiktionary too, and their cards are grammar. The bundled decks
+leave adverbs out entirely and add `-content-only -exclude decks/grammar-words.txt`,
+which is the combination that keeps `Ja`, `Habe` and `Würde` out: Wiktionary
+files them as nouns, and the rank they would inherit belongs to the particle.
 
 ## Configuration
 
