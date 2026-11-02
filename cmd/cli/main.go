@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/shaoyanji/deutsch-srs/internal/backend"
+	"github.com/shaoyanji/deutsch-srs/internal/deckfetch"
 	"github.com/shaoyanji/deutsch-srs/internal/srs"
 )
 
@@ -28,6 +29,13 @@ func main() {
 	if strings.HasPrefix(dbPath, "~/") {
 		home, _ := os.UserHomeDir()
 		dbPath = home + dbPath[1:]
+	}
+
+	// fetch talks to the network, not to the database: running it must not
+	// create or seed one as a side effect.
+	if len(os.Args) > 1 && os.Args[1] == "fetch" {
+		cmdFetch(os.Args[2:])
+		return
 	}
 
 	starterYML := os.Getenv("DEUTSCH_SRS_STARTER")
@@ -82,6 +90,9 @@ Commands:
                                   Import decks; cards already in the deck are skipped
   limit [--deck NAME] [--new-per-day N]
                                   Show or change a deck's daily new-card cap
+  fetch [--out DIR] [--only a1,a2] [--force] [--check]
+                                  Download the generated Wortschatz decks and
+                                  verify them against the pinned checksums
 
 Environment:
   DEUTSCH_SRS_DB       Database path (default: ~/.local/share/deutsch-srs/deutsch-srs.db)
@@ -390,4 +401,80 @@ func output(v any) {
 func fatal(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	os.Exit(1)
+}
+
+// --- Fetch ---
+
+// cmdFetch downloads the generated Wortschatz decks. They are built by
+// cmd/wordlist and published as a pinned gist revision, so the repository keeps
+// the builder and a checksum instead of ~290 KiB of regenerable YAML.
+func cmdFetch(args []string) {
+	var out, only string
+	var force, check bool
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--out":
+			i++
+			if i < len(args) {
+				out = args[i]
+			}
+		case "--only":
+			i++
+			if i < len(args) {
+				only = args[i]
+			}
+		case "--force":
+			force = true
+		case "--check":
+			check = true
+		default:
+			fatal("fetch: unknown flag %q", args[i])
+		}
+	}
+
+	m, err := deckfetch.Embedded()
+	if err != nil {
+		fatal("deck manifest: %v", err)
+	}
+	dir := out
+	if dir == "" {
+		dir = deckfetch.DefaultDir()
+	}
+
+	if check {
+		results, err := deckfetch.Verify(m, dir)
+		for _, r := range results {
+			fmt.Printf("%-3s %-14s ok      %s\n", strings.ToUpper(r.Deck.Level), r.Deck.Name, r.Path)
+		}
+		if err != nil {
+			fatal("verify decks: %v", err)
+		}
+		return
+	}
+
+	var levels []string
+	for _, part := range strings.Split(only, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			levels = append(levels, part)
+		}
+	}
+	results, err := deckfetch.Pull(context.Background(), nil, m, deckfetch.Options{
+		Dir:   dir,
+		Force: force,
+		Only:  levels,
+	})
+	fetched := 0
+	for _, r := range results {
+		state := "fetched"
+		if r.Skipped {
+			state = "cached"
+		} else {
+			fetched++
+		}
+		fmt.Printf("%-3s %-14s %-8s %4d cards  %s\n", strings.ToUpper(r.Deck.Level), r.Deck.Name, state, r.Deck.Cards, r.Path)
+	}
+	if err != nil {
+		fatal("fetch decks: %v", err)
+	}
+	fmt.Printf("%d of %d deck(s) downloaded into %s (revision %s)\n", fetched, len(results), dir, m.Revision[:12])
 }

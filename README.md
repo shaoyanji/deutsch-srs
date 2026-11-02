@@ -187,14 +187,14 @@ does not rebuild it.
 
 ## Bundled decks
 
-| File | Cards | Contents |
-|------|-------|----------|
-| `decks/starter.yaml` | 6 | A handful of first sentences, seeded on first run |
-| `decks/wortschatz-a1.yaml` | 214 | Vocabulary, frequency ranks 1-600 |
-| `decks/wortschatz-a2.yaml` | 467 | Vocabulary, frequency ranks 601-1500 |
-| `decks/wortschatz-b1.yaml` | 762 | Vocabulary, frequency ranks 1501-3000 |
-| `decks/wortschatz-b2.yaml` | 1418 | Vocabulary, frequency ranks 3001-6000 |
-| `decks/b2-schreiben.yaml` | 44 | B2 telc writing preparation |
+| File | Cards | Contents | In git |
+|------|-------|----------|--------|
+| `decks/starter.yaml` | 6 | A handful of first sentences, seeded on first run | yes |
+| `decks/wortschatz-a1.yaml` | 214 | Vocabulary, frequency ranks 1-600 | fetched |
+| `decks/wortschatz-a2.yaml` | 467 | Vocabulary, frequency ranks 601-1500 | fetched |
+| `decks/wortschatz-b1.yaml` | 762 | Vocabulary, frequency ranks 1501-3000 | fetched |
+| `decks/wortschatz-b2.yaml` | 1418 | Vocabulary, frequency ranks 3001-6000 | fetched |
+| `decks/b2-schreiben.yaml` | 44 | B2 telc writing preparation | yes |
 
 The four word decks are bands, not nesting levels: each one starts where the
 previous ended, so importing all four studies every word exactly once — 2,861
@@ -203,6 +203,28 @@ grammar belongs in a grammar reference, not in a vocabulary deck, so articles,
 pronouns, prepositions, conjunctions and adverbs are filtered out by part of
 speech, and the handful of function words Wiktionary files as nouns (`Ja` = "a
 yes", `Habe` = "belongings", `Würde` = "dignity") are excluded by spelling.
+
+### Fetching the word decks
+
+Those 2,861 cards are the output of `cmd/wordlist`, not source: they are
+published as a [gist](https://gist.github.com/shaoyanji/4e0e42be411144351d8fb1f2b574795f)
+pinned to one revision, and `internal/deckfetch/manifest.json` holds that
+revision plus a SHA-256 per file. Keeping them out of the tree stops every
+regeneration from rewriting ~290 KiB in history, and the checksums mean a
+mutated or truncated download is refused instead of imported.
+
+```bash
+deutsch-srs-cli fetch                  # all four, into ~/.local/share/deutsch-srs/decks
+deutsch-srs-cli fetch --only a1,a2     # just the beginner levels
+deutsch-srs-cli fetch --out ./decks    # anywhere else (decks/wortschatz-*.yaml is gitignored)
+deutsch-srs-cli fetch --check          # verify the local copies, no network
+
+deutsch-srs-cli import ~/.local/share/deutsch-srs/decks/wortschatz-a1.yaml
+```
+
+A copy that already matches its checksum is skipped, so re-running is free;
+`--force` re-downloads. The starter deck is compiled in, so the app works on a
+fresh clone with no fetch at all.
 
 `decks/b2-schreiben.yaml` covers the writing subtest (30 minutes, at least 150
 words, 45 points): the exam facts and the three rating criteria, the four
@@ -242,8 +264,12 @@ for lvl in a1 a2 b1 b2; do
 done
 
 # Load it; re-running is safe
-deutsch-srs-cli import ./decks/wortschatz-b1.yaml
+deutsch-srs-cli import ./wortschatz-b1.yaml
 ```
+
+Regenerating publishes a new deck, so the gist needs the new file and the
+manifest needs a new `revision`, `sha256` and `bytes` for it — `fetch` refuses
+a file whose checksum disagrees with the manifest, which is the point.
 
 | Flag | Meaning |
 |------|---------|

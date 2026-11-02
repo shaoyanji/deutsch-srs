@@ -1,0 +1,40 @@
+{
+  "note": "Generated decks are fetched, not committed: regenerate with cmd/wordlist (see README) and re-upload the four files to this gist, then update the revision, the checksums and the sizes here.",
+  "gist": "4e0e42be411144351d8fb1f2b574795f",
+  "revision": "a73a826f911f83320d7f0b210161a94dff1c73d9",
+  "base_url": "https://gist.githubusercontent.com/shaoyanji/4e0e42be411144351d8fb1f2b574795f/raw/a73a826f911f83320d7f0b210161a94dff1c73d9/",
+  "decks": [
+    {
+      "name": "Wortschatz A1",
+      "level": "a1",
+      "file": "wortschatz-a1.yaml",
+      "sha256": "084db7f2c45170a33b3e880398cfab0cefd0c163b652cd2572c2fa79d9b31859",
+      "bytes": 21580,
+      "cards": 214
+    },
+    {
+      "name": "Wortschatz A2",
+      "level": "a2",
+      "file": "wortschatz-a2.yaml",
+      "sha256": "3ae2b9680ffd36881ae551d6833eb21135d1154b8d00d9c747272bcd7641ffd9",
+      "bytes": 48351,
+      "cards": 467
+    },
+    {
+      "name": "Wortschatz B1",
+      "level": "b1",
+      "file": "wortschatz-b1.yaml",
+      "sha256": "3c06ac9d39e268e0e8bf7fa2de143027da82fba4ba8e4dd720a574fe6ca33198",
+      "bytes": 78834,
+      "cards": 762
+    },
+    {
+      "name": "Wortschatz B2",
+      "level": "b2",
+      "file": "wortschatz-b2.yaml",
+      "sha256": "c82190b5a6aaa4737df5c811e87cb86ae2ec1204b081d099fa0b8743ccc54157",
+      "bytes": 149203,
+      "cards": 1418
+    }
+  ]
+}
