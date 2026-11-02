@@ -17,6 +17,9 @@ import (
 
 type Mode string
 
+// reviewBatchSize is how many cards one batch hands to the review screen.
+const reviewBatchSize = 50
+
 const (
 	ModeBrowse Mode = "browse"
 	ModeReview Mode = "review"
@@ -30,8 +33,8 @@ type decksMsg struct {
 	err   error
 }
 
-type dueCardsMsg struct {
-	cards []srs.Card
+type queueMsg struct {
+	queue backend.Queue
 	err   error
 }
 
@@ -46,7 +49,8 @@ type addCardMsg struct {
 }
 
 type answerMsg struct {
-	err error
+	cardID string
+	err    error
 }
 
 type searchMsg struct {
@@ -79,6 +83,11 @@ type Model struct {
 	reviewIdx   int
 	revealed    bool
 
+	reviewNewPerDay    int
+	reviewNewToday     int
+	reviewNewRemaining int
+	newCounted         map[string]bool
+
 	// pendingAgainCard holds a card graded "Again" that should be re-queued
 	// at the end of the current session queue.
 	pendingAgainCard *srs.Card
@@ -110,6 +119,7 @@ func NewModel(be backend.Backend) Model {
 	m.help.ShowAll = false
 	m.addInputs = buildAddInputs()
 	m.searchInput = buildSearchInput()
+	m.newCounted = map[string]bool{}
 	return m
 }
 
@@ -157,15 +167,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.deckCursor = len(m.decks) - 1
 		}
 		return m, nil
-	case dueCardsMsg:
+	case queueMsg:
 		if msg.err != nil {
-			m.setError("load due cards", msg.err)
+			m.setError("load review queue", msg.err)
 			return m, nil
 		}
 		m.errText = ""
-		m.reviewCards = msg.cards
+		m.infoText = ""
+		m.reviewCards = msg.queue.Cards
 		m.reviewIdx = 0
 		m.revealed = false
+		m.pendingAgainCard = nil
+		m.reviewNewPerDay = msg.queue.NewPerDay
+		m.reviewNewToday = msg.queue.NewToday
+		m.reviewNewRemaining = msg.queue.NewRemaining
 		m.mode = ModeReview
 		return m, nil
 	case statsMsg:
@@ -194,6 +209,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.errText = ""
+		if m.isFirstReview(msg.cardID) {
+			m.reviewNewToday++
+		}
 		// Re-queue "Again" cards to the end of the session queue
 		if m.pendingAgainCard != nil {
 			m.reviewCards = append(m.reviewCards, *m.pendingAgainCard)
@@ -316,13 +334,18 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.reviewDeck = m.decks[m.deckCursor].Name
-		return m, m.cmdLoadDueCards(m.reviewDeck)
+		return m, m.cmdLoadQueue(m.reviewDeck)
 	}
 	return m, nil
 }
 
 func (m Model) updateReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	if len(m.reviewCards) == 0 || m.reviewIdx >= len(m.reviewCards) {
+	if m.reviewIdx >= len(m.reviewCards) {
+		// Batch finished: enter pulls the next batch instead of sending the
+		// learner back to the deck list and making them pick the deck again.
+		if key.Matches(msg, m.keys.Select) && m.reviewDeck != "" {
+			return m, m.cmdLoadQueue(m.reviewDeck)
+		}
 		return m, nil
 	}
 	switch {
@@ -523,10 +546,10 @@ func (m Model) cmdLoadDecks() tea.Cmd {
 	}
 }
 
-func (m Model) cmdLoadDueCards(deck string) tea.Cmd {
+func (m Model) cmdLoadQueue(deck string) tea.Cmd {
 	return func() tea.Msg {
-		cards, err := m.backend.DueCards(context.Background(), deck, 50)
-		return dueCardsMsg{cards: cards, err: err}
+		queue, err := m.backend.ReviewQueue(context.Background(), deck, reviewBatchSize)
+		return queueMsg{queue: queue, err: err}
 	}
 }
 
@@ -547,8 +570,24 @@ func (m Model) cmdAddCard(in backend.AddCardInput) tea.Cmd {
 func (m Model) cmdAnswerCard(cardID string, grade srs.ReviewGrade) tea.Cmd {
 	return func() tea.Msg {
 		err := m.backend.AnswerCard(context.Background(), cardID, grade)
-		return answerMsg{err: err}
+		return answerMsg{cardID: cardID, err: err}
 	}
+}
+
+// isFirstReview reports whether this answer introduces a card, so the daily
+// counter reflects what the learner has actually seen. A card that comes back
+// in the same session counts once.
+func (m *Model) isFirstReview(cardID string) bool {
+	if m.newCounted[cardID] {
+		return false
+	}
+	for _, c := range m.reviewCards {
+		if c.ID == cardID && c.Reps == 0 {
+			m.newCounted[cardID] = true
+			return true
+		}
+	}
+	return false
 }
 
 func (m Model) cmdSearchCards(query string) tea.Cmd {

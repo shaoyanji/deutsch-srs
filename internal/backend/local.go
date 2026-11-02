@@ -14,6 +14,8 @@ import (
 type LocalBackend struct {
 	store *store.SQLiteStore
 	now   func() time.Time
+
+	defaultNewPerDay int
 }
 
 func NewLocalBackend(dbPath, starterDeckPath string) (*LocalBackend, error) {
@@ -22,8 +24,9 @@ func NewLocalBackend(dbPath, starterDeckPath string) (*LocalBackend, error) {
 		return nil, err
 	}
 	b := &LocalBackend{
-		store: st,
-		now:   time.Now,
+		store:            st,
+		now:              time.Now,
+		defaultNewPerDay: DefaultNewPerDay,
 	}
 	if err := b.seedIfEmpty(context.Background(), starterDeckPath); err != nil {
 		_ = st.Close()

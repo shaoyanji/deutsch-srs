@@ -149,3 +149,13 @@ func (b *Backend) Stats(ctx context.Context) (backend.Stats, error) {
 func (b *Backend) Health(ctx context.Context) error {
 	return b.client.Health(ctx)
 }
+
+// ReviewQueue delegates to Anki's own scheduler: Anki decides what is due and
+// in what order, so no daily new-card cap is applied here.
+func (b *Backend) ReviewQueue(ctx context.Context, deck string, limit int) (backend.Queue, error) {
+	cards, err := b.DueCards(ctx, deck, limit)
+	if err != nil {
+		return backend.Queue{}, err
+	}
+	return backend.Queue{Cards: cards}, nil
+}

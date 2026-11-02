@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/shaoyanji/deutsch-srs/internal/app"
+	"github.com/shaoyanji/deutsch-srs/internal/backend"
 	"github.com/shaoyanji/deutsch-srs/internal/version"
 )
 
@@ -16,6 +17,7 @@ func main() {
 	flag.StringVar(&cfg.DBPath, "db", "./deutsch-srs.db", "path to sqlite database")
 	flag.StringVar(&cfg.StarterYML, "starter", "./decks/starter.yaml", "path to starter deck yaml")
 	flag.StringVar(&cfg.AnkiURL, "anki-url", "http://127.0.0.1:8765", "ankiconnect base url")
+	flag.IntVar(&cfg.NewPerDay, "new-per-day", backend.DefaultNewPerDay, "unseen cards a deck introduces per day (0 = none)")
 	flag.BoolVar(&showVersion, "version", false, "print version/build info")
 	flag.Parse()
 	if showVersion {

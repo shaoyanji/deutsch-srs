@@ -188,7 +188,30 @@ deutsch-srs-cli import ./decks/b2-schreiben.yaml
 | `-db` | `./deutsch-srs.db` | Path to SQLite database |
 | `-starter` | `./decks/starter.yaml` | Path to starter deck YAML |
 | `-anki-url` | `http://127.0.0.1:8765` | AnkiConnect URL (anki mode only) |
+| `-new-per-day` | `20` | Unseen cards a deck introduces per day (`0` = none) |
 | `-version` | - | Print version info and exit |
+
+### Daily new cards
+
+A review session is due reviews first, then unseen cards - but only as many
+new ones as the deck allows per day. That is what keeps a 70,000-card word
+list usable: you get the backlog you have actually learned plus a fixed dose
+of new material, not 70,000 cards at once.
+
+The app default is 20 new cards per deck per day (`-new-per-day`). Per-deck
+settings live in the database, so they survive a restart:
+
+```bash
+# What is each deck set to, and how much of today's allowance is used?
+deutsch-srs-cli limit
+
+# Give one deck its own pace; 0 pauses new cards entirely
+deutsch-srs-cli limit --deck "Wortschatz B2" --new-per-day 8
+```
+
+When a batch of 50 cards is finished, `enter` loads the next one instead of
+sending you back to the deck list. Once reviews are done and the day's new
+cards are used, the review screen says so.
 
 ### Deck YAML Format
 

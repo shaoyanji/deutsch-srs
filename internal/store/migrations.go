@@ -31,4 +31,10 @@ var migrations = []string{
 		ease REAL NOT NULL,
 		FOREIGN KEY(card_id) REFERENCES cards(id)
 	);`,
+	`CREATE INDEX IF NOT EXISTS idx_review_log_card ON review_log(card_id, answered_at);`,
+	`CREATE TABLE IF NOT EXISTS deck_settings (
+		deck TEXT PRIMARY KEY,
+		new_per_day INTEGER NOT NULL,
+		updated_at TEXT NOT NULL
+	);`,
 }

@@ -59,6 +59,8 @@ func main() {
 		cmdSearch(ctx, be, args)
 	case "import":
 		cmdImport(ctx, be, args)
+	case "limit":
+		cmdLimit(ctx, be, args)
 	default:
 		fatal("unknown command: %s", cmd)
 	}
@@ -78,6 +80,8 @@ Commands:
   import FILE... [--deck NAME] [--format auto|csv|tsv|yaml]
                                   [--dry-run] [--allow-duplicates]
                                   Import decks; cards already in the deck are skipped
+  limit [--deck NAME] [--new-per-day N]
+                                  Show or change a deck's daily new-card cap
 
 Environment:
   DEUTSCH_SRS_DB       Database path (default: ~/.local/share/deutsch-srs/deutsch-srs.db)
@@ -325,6 +329,52 @@ func cmdImport(ctx context.Context, be *backend.LocalBackend, args []string) {
 		"dry_run":       dryRun,
 		"skip_existing": skipExisting,
 	})
+}
+
+func cmdLimit(ctx context.Context, be *backend.LocalBackend, args []string) {
+	var deck string
+	newPerDay := -1
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--deck":
+			i++
+			if i < len(args) {
+				deck = args[i]
+			}
+		case "--new-per-day":
+			i++
+			if i < len(args) {
+				n, err := strconv.Atoi(args[i])
+				if err != nil || n < 0 {
+					fatal("limit: --new-per-day must be zero or more")
+				}
+				newPerDay = n
+			}
+		}
+	}
+	if newPerDay >= 0 {
+		if deck == "" {
+			fatal("limit: --deck is required when setting a cap")
+		}
+		if err := be.SetDeckNewPerDay(ctx, deck, newPerDay); err != nil {
+			fatal("limit: %v", err)
+		}
+	}
+
+	limits, err := be.DeckLimits(ctx)
+	if err != nil {
+		fatal("limit: %v", err)
+	}
+	if deck != "" {
+		for _, l := range limits {
+			if l.Deck == deck {
+				output(l)
+				return
+			}
+		}
+		fatal("limit: deck %q not found", deck)
+	}
+	output(limits)
 }
 
 // --- Helpers ---

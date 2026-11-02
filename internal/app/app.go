@@ -15,6 +15,7 @@ type Config struct {
 	DBPath     string
 	StarterYML string
 	AnkiURL    string
+	NewPerDay  int
 }
 
 func Run(cfg Config) error {
@@ -40,6 +41,9 @@ func newBackend(cfg Config) (backend.Backend, func() error, error) {
 		lb, err := backend.NewLocalBackend(cfg.DBPath, cfg.StarterYML)
 		if err != nil {
 			return nil, nil, err
+		}
+		if cfg.NewPerDay >= 0 {
+			lb.SetDefaultNewPerDay(cfg.NewPerDay)
 		}
 		return lb, lb.Close, nil
 	case "anki":
