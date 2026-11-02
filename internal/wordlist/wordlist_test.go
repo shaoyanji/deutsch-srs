@@ -283,3 +283,68 @@ func TestLevelLimit(t *testing.T) {
 		t.Fatalf("level mapping changed: a1=%d b2=%d c1=%d", LevelLimit("a1"), LevelLimit("B2"), LevelLimit("C1"))
 	}
 }
+
+func TestBuildMinRankKeepsBandsDisjoint(t *testing.T) {
+	entries := `{"word":"eins","pos":"adj","senses":[{"glosses":["one"]}]}
+{"word":"zwei","pos":"adj","senses":[{"glosses":["two"]}]}
+{"word":"drei","pos":"adj","senses":[{"glosses":["three"]}]}`
+	ranks := ranksOf("eins", "zwei", "drei")
+
+	cards, stats := build(t, entries, ranks, Options{MinRank: 2, MaxRank: 3})
+	if len(cards) != 2 || cards[0].Front != "zwei" || cards[1].Front != "drei" {
+		t.Fatalf("band 2-3 = %v", cards)
+	}
+	if stats.TooCommon != 1 {
+		t.Fatalf("stats.TooCommon = %d, want 1", stats.TooCommon)
+	}
+}
+
+func TestLevelFloorMakesPerLevelBands(t *testing.T) {
+	want := map[string]int{"a1": 0, "a2": 600, "b1": 1500, "b2": 3000, "c1": 0}
+	for level, floor := range want {
+		if got := LevelFloor(level); got != floor {
+			t.Fatalf("LevelFloor(%q) = %d, want %d", level, got, floor)
+		}
+	}
+	// Each band starts one rank past the previous level's ceiling, so the four
+	// decks together hold every word exactly once.
+	order := []string{"a1", "a2", "b1", "b2"}
+	for i := 1; i < len(order); i++ {
+		if LevelFloor(order[i]) != LevelLimit(order[i-1]) {
+			t.Fatalf("%s does not start where the previous level ends", order[i])
+		}
+	}
+}
+
+func TestBuildKeepsEntryWithOneFormSense(t *testing.T) {
+	// The real kaikki entry for "Wasser" ends with an abbreviation sense
+	// ("clipping of Mineralwasser"). Treating any form sense as a form entry
+	// dropped the whole word from every deck.
+	entries := `{"word":"Wasser","pos":"noun","senses":[` +
+		`{"glosses":["water (H\u2082O)"],"tags":["neuter"]},` +
+		`{"glosses":["abbreviation of Mineralwasser"],"tags":["alt-of","clipping"]}]}`
+
+	cards, stats := build(t, entries, ranksOf("Wasser"), Options{})
+	if len(cards) != 1 || cards[0].Front != "Wasser" {
+		t.Fatalf("cards = %v, want the noun", cards)
+	}
+	if cards[0].Back != "water" {
+		t.Fatalf("back = %q, want the first translation", cards[0].Back)
+	}
+	if stats.FormOf != 0 {
+		t.Fatalf("stats.FormOf = %d, want 0", stats.FormOf)
+	}
+}
+
+func TestBuildStillDropsPureFormEntries(t *testing.T) {
+	entries := `{"word":"ist","pos":"verb","senses":[` +
+		`{"form_of":[{"word":"sein"}],"glosses":["third-person singular present of sein"]}]}`
+
+	cards, stats := build(t, entries, ranksOf("ist"), Options{})
+	if len(cards) != 0 {
+		t.Fatalf("cards = %v, want none", cards)
+	}
+	if stats.FormOf != 1 {
+		t.Fatalf("stats.FormOf = %d, want 1", stats.FormOf)
+	}
+}

@@ -24,6 +24,10 @@ var LevelRanks = map[string]int{
 	"b2": 6000,
 }
 
+// levelOrder fixes which level comes before which, so a level's band can start
+// where the previous one ended.
+var levelOrder = []string{"a1", "a2", "b1", "b2"}
+
 // DefaultPos is the set worth learning as single words: the four that carry most
 // of a sentence. Function words and phrases are left out because they are learnt
 // in context, not as an isolated translation pair.
@@ -101,6 +105,10 @@ type Options struct {
 	// MaxRank drops lemmas rarer than this frequency rank. 0 keeps every ranked
 	// lemma, however rare.
 	MaxRank int
+	// MinRank drops lemmas more frequent than this rank, so a level deck holds
+	// only the words that level adds instead of repeating every earlier one. 0
+	// keeps them.
+	MinRank int
 	// AllowUnranked keeps lemmas the frequency list has never seen; they sort
 	// after the ranked ones.
 	AllowUnranked bool
@@ -135,6 +143,7 @@ type Stats struct {
 	FormOf     int
 	Unranked   int
 	TooRare    int
+	TooCommon  int
 	NoGloss    int
 	Duplicate  int
 	Demoted    int
@@ -238,6 +247,9 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 		case reasonRare:
 			stats.TooRare++
 			continue
+		case reasonCommon:
+			stats.TooCommon++
+			continue
 		default:
 			stats.NoGloss++
 			continue
@@ -339,6 +351,7 @@ const (
 	reasonForm     = "form"
 	reasonUnranked = "unranked"
 	reasonRare     = "rare"
+	reasonCommon   = "common"
 	reasonGloss    = "gloss"
 )
 
@@ -362,6 +375,9 @@ func buildCard(e entry, form bool, ranks map[string]int, keepPos map[string]bool
 	if opts.MaxRank > 0 && rank > opts.MaxRank {
 		return Card{}, reasonRare
 	}
+	if opts.MinRank > 1 && rank != 0 && rank < opts.MinRank {
+		return Card{}, reasonCommon
+	}
 
 	back := pickGloss(e.Senses, word, maxGloss)
 	if back == "" {
@@ -375,15 +391,20 @@ func buildCard(e entry, form bool, ranks map[string]int, keepPos map[string]bool
 	return Card{Front: word, Back: back, Pos: pos, Rank: rank, Tags: tags}, reasonNone
 }
 
-// isFormEntry reports whether every sense of the entry points at another lemma:
-// an inflected form, an alternative spelling, or a plural.
+// isFormEntry reports whether the entry exists only to point at another lemma.
+// Every sense has to point away: "Wasser" carries four real translations and a
+// fifth sense that is a clipping of Mineralwasser, and dropping the entry over
+// that one sense removed the word from every deck.
 func isFormEntry(e entry) bool {
+	if len(e.Senses) == 0 {
+		return false
+	}
 	for _, s := range e.Senses {
-		if s.FormOf != nil || s.AltOf != nil || hasTag(s.Tags, formTags) {
-			return true
+		if s.FormOf == nil && s.AltOf == nil && !hasTag(s.Tags, formTags) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // pickGloss returns the first sense that actually translates the word. Wiktionary
@@ -549,4 +570,21 @@ func posLabel(pos string) string {
 // LevelLimit maps a level name to its frequency ceiling, or 0 when unknown.
 func LevelLimit(level string) int {
 	return LevelRanks[strings.ToLower(strings.TrimSpace(level))]
+}
+
+// LevelFloor maps a level name to the ceiling of the level before it, or 0 for
+// the first level and for unknown names. The band a level covers is
+// (LevelFloor, LevelLimit], which is what keeps per-level decks disjoint.
+func LevelFloor(level string) int {
+	normalized := strings.ToLower(strings.TrimSpace(level))
+	for i, name := range levelOrder {
+		if name != normalized {
+			continue
+		}
+		if i == 0 {
+			return 0
+		}
+		return LevelRanks[levelOrder[i-1]]
+	}
+	return 0
 }

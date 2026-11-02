@@ -18,17 +18,19 @@ import (
 
 func main() {
 	var (
-		kaikki  = flag.String("kaikki", "", "path to a kaikki.org JSONL extract (e.g. kaikki.org-dictionary-German.jsonl)")
-		freq    = flag.String("freq", "", "path to an OpenSubtitles frequency list (word count per line, most frequent first)")
-		out     = flag.String("out", "", "output deck file (.yaml or .csv)")
-		deck    = flag.String("deck", "", "deck name stored in the deck file")
-		level   = flag.String("level", "", "frequency band to build up to: a1, a2, b1 or b2 (default: every ranked lemma)")
-		pos     = flag.String("pos", strings.Join(wordlist.DefaultPos, ","), "comma-separated kaikki parts of speech to keep")
-		limit   = flag.Int("limit", 0, "maximum number of cards (0 = all)")
-		maxRank = flag.Int("max-rank", 0, "drop lemmas rarer than this frequency rank (0 = no cap)")
-		maxGlos = flag.Int("max-gloss", 120, "trim translations to this many characters")
-		unrank  = flag.Bool("allow-unranked", false, "keep lemmas the frequency list has never seen")
-		stat    = flag.Bool("stats", true, "print drop counts and a sample")
+		kaikki     = flag.String("kaikki", "", "path to a kaikki.org JSONL extract (e.g. kaikki.org-dictionary-German.jsonl)")
+		freq       = flag.String("freq", "", "path to an OpenSubtitles frequency list (word count per line, most frequent first)")
+		out        = flag.String("out", "", "output deck file (.yaml or .csv)")
+		deck       = flag.String("deck", "", "deck name stored in the deck file")
+		level      = flag.String("level", "", "level band to build: a1, a2, b1 or b2 (default: every ranked lemma)")
+		cumulative = flag.Bool("cumulative", false, "with -level, keep every word up to the level instead of only that level's band")
+		pos        = flag.String("pos", strings.Join(wordlist.DefaultPos, ","), "comma-separated kaikki parts of speech to keep")
+		limit      = flag.Int("limit", 0, "maximum number of cards (0 = all)")
+		minRank    = flag.Int("min-rank", 0, "drop lemmas more frequent than this rank (0 = none)")
+		maxRank    = flag.Int("max-rank", 0, "drop lemmas rarer than this rank (0 = no cap)")
+		maxGlos    = flag.Int("max-gloss", 120, "trim translations to this many characters")
+		unrank     = flag.Bool("allow-unranked", false, "keep lemmas the frequency list has never seen")
+		stat       = flag.Bool("stats", true, "print drop counts and a sample")
 	)
 	flag.Parse()
 
@@ -45,15 +47,23 @@ func main() {
 			deckName += " " + strings.ToUpper(*level)
 		}
 	}
-	ceiling := *maxRank
+
+	floor, ceiling := *minRank, *maxRank
 	if *level != "" {
-		limitForLevel := wordlist.LevelLimit(*level)
-		if limitForLevel == 0 {
+		levelCeiling := wordlist.LevelLimit(*level)
+		if levelCeiling == 0 {
 			fmt.Fprintf(os.Stderr, "unknown level %q (want a1, a2, b1 or b2)\n", *level)
 			os.Exit(2)
 		}
-		if ceiling == 0 || limitForLevel < ceiling {
-			ceiling = limitForLevel
+		if ceiling == 0 || levelCeiling < ceiling {
+			ceiling = levelCeiling
+		}
+		// Per-level decks are bands: A2 holds the words A1 did not already teach,
+		// so importing all four does not drill the same word four times.
+		if !*cumulative {
+			if levelFloor := wordlist.LevelFloor(*level); levelFloor+1 > floor {
+				floor = levelFloor + 1
+			}
 		}
 	}
 
@@ -76,6 +86,7 @@ func main() {
 	}
 	cards, stats, err := wordlist.Build(kaikkiFile, ranks, wordlist.Options{
 		Pos:           splitList(*pos),
+		MinRank:       floor,
 		MaxRank:       ceiling,
 		AllowUnranked: *unrank,
 		Limit:         *limit,
@@ -98,17 +109,27 @@ func main() {
 	}
 
 	if *stat {
-		report(deckName, *out, stats, cards)
+		report(deckName, *out, floor, ceiling, stats, cards)
 	}
 }
 
-func report(deckName, path string, stats wordlist.Stats, cards []wordlist.Card) {
+func report(deckName, path string, floor, ceiling int, stats wordlist.Stats, cards []wordlist.Card) {
 	fmt.Printf("deck: %s\n", deckName)
 	fmt.Printf("file: %s\n", path)
+	if floor > 1 || ceiling > 0 {
+		fmt.Printf("band: rank %d", floor)
+		if ceiling > 0 {
+			fmt.Printf("-%d", ceiling)
+		} else {
+			fmt.Printf(" and rarer")
+		}
+		fmt.Printf("\n")
+	}
 	fmt.Printf("kept %d cards from %d entries\n", stats.Kept, stats.Entries)
 	fmt.Printf("  dropped: %d wrong part of speech, %d inflected forms, %d without a translation,\n"+
-		"           %d unranked, %d too rare, %d no senses, %d duplicate headwords, %d unparsable lines\n",
-		stats.WrongPos, stats.FormOf, stats.NoGloss, stats.Unranked, stats.TooRare, stats.NoSense, stats.Duplicate, stats.Unparsable)
+		"           %d unranked, %d too rare, %d too common, %d no senses, %d duplicate headwords, %d unparsable lines\n",
+		stats.WrongPos, stats.FormOf, stats.NoGloss, stats.Unranked, stats.TooRare, stats.TooCommon,
+		stats.NoSense, stats.Duplicate, stats.Unparsable)
 	if stats.Demoted > 0 {
 		sample := make([]string, 0, 5)
 		for i := len(cards) - 1; i >= 0 && len(sample) < 5; i-- {

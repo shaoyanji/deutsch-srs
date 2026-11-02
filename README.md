@@ -177,10 +177,18 @@ does not rebuild it.
 
 ## Bundled decks
 
-| File | Contents |
-|------|----------|
-| `decks/starter.yaml` | A handful of first sentences, seeded on first run |
-| `decks/b2-schreiben.yaml` | B2 telc writing preparation: 44 cards |
+| File | Cards | Contents |
+|------|-------|----------|
+| `decks/starter.yaml` | 6 | A handful of first sentences, seeded on first run |
+| `decks/wortschatz-a1.yaml` | 341 | Vocabulary, frequency ranks 1-600 |
+| `decks/wortschatz-a2.yaml` | 537 | Vocabulary, frequency ranks 601-1500 |
+| `decks/wortschatz-b1.yaml` | 834 | Vocabulary, frequency ranks 1501-3000 |
+| `decks/wortschatz-b2.yaml` | 1488 | Vocabulary, frequency ranks 3001-6000 |
+| `decks/b2-schreiben.yaml` | 44 | B2 telc writing preparation |
+
+The four word decks are bands, not nesting levels: each one starts where the
+previous ended, so importing all four studies every word exactly once and adds
+up to the same 3,200 cards as a single cumulative B2 deck (`-cumulative`).
 
 `decks/b2-schreiben.yaml` covers the writing subtest (30 minutes, at least 150
 words, 45 points): the exam facts and the three rating criteria, the four
@@ -208,9 +216,12 @@ curl -L -o kaikki-de.jsonl https://kaikki.org/dictionary/German/kaikki.org-dicti
 curl -L -o de_full.txt \
   https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_full.txt
 
-# A1 to B2: each level is a frequency band (a1=600, a2=1500, b1=3000, b2=6000)
-go run ./cmd/wordlist -kaikki kaikki-de.jsonl -freq de_full.txt \
-  -out decks/wortschatz-b1.yaml -deck "Wortschatz B1" -level b1
+# A1 to B2: each level is its own frequency band (a1=1-600, a2=601-1500,
+# b1=1501-3000, b2=3001-6000), so the decks do not repeat each other
+for lvl in a1 a2 b1 b2; do
+  go run ./cmd/wordlist -kaikki kaikki-de.jsonl -freq de_full.txt \
+    -out decks/wortschatz-$lvl.yaml -deck "Wortschatz ${lvl^^}" -level $lvl
+done
 
 # Load it; re-running is safe
 deutsch-srs-cli import ./decks/wortschatz-b1.yaml
@@ -218,7 +229,9 @@ deutsch-srs-cli import ./decks/wortschatz-b1.yaml
 
 | Flag | Meaning |
 |------|---------|
-| `-level` | frequency ceiling: `a1`, `a2`, `b1`, `b2` (a proxy, not an exam syllabus) |
+| `-level` | that level's frequency band: `a1`, `a2`, `b1`, `b2` (a proxy, not an exam syllabus) |
+| `-cumulative` | with `-level`, keep every word up to the level instead of only its own band |
+| `-min-rank` | drop lemmas more frequent than this rank (0 = none) |
 | `-pos` | parts of speech to keep; default `noun,verb,adj,adv` |
 | `-limit` | hard cap on cards, applied after ordering |
 | `-max-rank` | drop lemmas rarer than this rank (overrides `-level` when smaller) |
