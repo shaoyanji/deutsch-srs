@@ -80,7 +80,7 @@ On first run with the `-starter` flag (default: `./decks/starter.yaml`), the app
 | **Browse** | Select a deck to review |
 | **Review** | Study cards with spaced repetition |
 | **Add** | Create new cards manually |
-| **Search** | Find cards by text or tags |
+| **Search** | Find cards by word prefix, translation, tag or deck name |
 | **Stats** | View learning statistics |
 
 ### Keybindings
@@ -160,6 +160,21 @@ deutsch-srs-cli import ./liste.csv --allow-duplicates
 The CLI prints a summary (`added`, `skipped`, `invalid`) instead of every card
 id, and writes the whole file in one transaction.
 
+### Search
+
+Search runs against an SQLite FTS5 index over the card front, back, tags and
+deck name, so it costs the same on a 200-card deck and a 77,000-card one (about
+2 ms against a scanned 100 ms, measured on the 77k word deck). Every query word
+matches as a prefix: `hund` finds `Hund` and `Hundehütte`, but not `Dachshund`.
+
+Whole words rank above prefixes, so `haus` puts `Haus` before `Hausschlüssel`
+rather than leaving the order to bm25, which scores both the same. Umlauts are
+folded, so `uber` finds `über` and `schon` also finds `schön`.
+
+The index is maintained by triggers on `cards`, and a database created before it
+existed is backfilled once on open (about 2 s for 77k cards). Re-importing a deck
+does not rebuild it.
+
 ## Bundled decks
 
 | File | Contents |
@@ -177,6 +192,53 @@ four-item error checklist, and one full model answer per task type.
 # Load it in one transaction; safe to re-run, existing cards are skipped
 deutsch-srs-cli import ./decks/b2-schreiben.yaml
 ```
+
+## Generating a word deck
+
+`cmd/wordlist` builds a frequency-ordered vocabulary deck from two public
+sources, which is how the A1-B2 word lists are regenerated:
+
+| Source | What it contributes |
+|--------|---------------------|
+| [kaikki.org](https://kaikki.org/dictionary/German/) German Wiktionary extract | headwords, part of speech, English translations |
+| [FrequencyWords](https://github.com/hermitdave/FrequencyWords) `de_full.txt` | OpenSubtitles token ranks, so the deck leads with words people use |
+
+```bash
+curl -L -o kaikki-de.jsonl https://kaikki.org/dictionary/German/kaikki.org-dictionary-German.jsonl
+curl -L -o de_full.txt \
+  https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_full.txt
+
+# A1 to B2: each level is a frequency band (a1=600, a2=1500, b1=3000, b2=6000)
+go run ./cmd/wordlist -kaikki kaikki-de.jsonl -freq de_full.txt \
+  -out decks/wortschatz-b1.yaml -deck "Wortschatz B1" -level b1
+
+# Load it; re-running is safe
+deutsch-srs-cli import ./decks/wortschatz-b1.yaml
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-level` | frequency ceiling: `a1`, `a2`, `b1`, `b2` (a proxy, not an exam syllabus) |
+| `-pos` | parts of speech to keep; default `noun,verb,adj,adv` |
+| `-limit` | hard cap on cards, applied after ordering |
+| `-max-rank` | drop lemmas rarer than this rank (overrides `-level` when smaller) |
+| `-max-gloss` | trim translations to this many characters (default 120) |
+| `-allow-unranked` | keep lemmas the frequency list never saw, ordered last |
+
+The build reports what it dropped, so a deck can be audited instead of trusted.
+Entries are rejected when they are inflected forms (`ist`, `Häuser`), when a
+sense only describes another lemma (`plural of Haus`, `obsolete form of freien`),
+when a sense is tagged as existing only inside compounds (`ein-` as "motion into
+something"), or when a sense is the auxiliary use of a verb (`haben` as "forms
+the perfect aspect" - the card is "to have; to own"). A noun or adjective whose
+lowercase spelling belongs to a closed-class word keeps its card but ranks last,
+because its frequency came from that other word: `Ich` (the ego) inherits the
+rank of the pronoun `ich`.
+
+Adverbs are worth knowing about: they are in the default set because `gestern`
+and `immer` are vocabulary, but `mit`, `aber` and `so` are filed as adverbs in
+Wiktionary too, and their cards are grammar rather than vocabulary. Build with
+`-pos noun,verb,adj` if you want content words only.
 
 ## Configuration
 
@@ -231,13 +293,16 @@ cards:
 ```
 deutsch-srs
 ├── cmd/deutsch-srs/      # Main entry point
+├── cmd/cli/              # Headless CLI (import, search, decks, limit)
+├── cmd/wordlist/         # Builds A1-B2 decks from kaikki + a frequency list
 ├── internal/
 │   ├── app/              # App lifecycle
 │   ├── ui/               # Bubble Tea TUI
 │   ├── backend/          # Local & AnkiConnect backends
-│   ├── store/            # SQLite persistence
+│   ├── store/            # SQLite persistence and the FTS5 search index
 │   ├── srs/              # Spaced repetition scheduler
 │   ├── anki/             # AnkiConnect client
+│   ├── wordlist/         # kaikki/frequency join, sense cleaning
 │   └── importexport/     # YAML/CSV helpers
 └── decks/                # Bundled decks (starter vocabulary, B2 telc writing)
 ```
