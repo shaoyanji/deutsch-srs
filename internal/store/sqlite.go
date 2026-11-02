@@ -304,14 +304,40 @@ func (s *SQLiteStore) ensureCardSchedulerColumns(ctx context.Context) error {
 	return nil
 }
 
+// schedulerBackfillMarker records that the legacy scheduler columns have been
+// backfilled for this database. The migration is a one-off, so without a marker
+// every open pays for it again.
+const schedulerBackfillMarker = "scheduler_backfill_at"
+
 func (s *SQLiteStore) backfillCardSchedulerState(ctx context.Context, now time.Time) error {
-	rows, err := s.db.QueryContext(ctx, `
+	var done string
+	err := s.db.QueryRowContext(ctx, `SELECT value FROM schema_meta WHERE key = ?`, schedulerBackfillMarker).Scan(&done)
+	switch {
+	case err == nil:
+		return nil
+	case !errors.Is(err, sql.ErrNoRows):
+		return fmt.Errorf("read scheduler backfill marker: %w", err)
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin scheduler backfill: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Only rows the migration actually changes are read and rewritten. Reading
+	// every card and then running one autocommit UPDATE per row cost 2.3 s of
+	// startup on a 77k-card deck to write back the values it had just read.
+	rows, err := tx.QueryContext(ctx, `
 		SELECT id, interval_days, ease, stability_days, difficulty, last_review_at, updated_at, created_at
-		FROM cards`)
+		FROM cards
+		WHERE stability_days <= 0
+			OR difficulty < 0
+			OR difficulty > 1
+			OR LENGTH(TRIM(last_review_at)) = 0`)
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
 
 	type rowData struct {
 		id           string
@@ -323,50 +349,70 @@ func (s *SQLiteStore) backfillCardSchedulerState(ctx context.Context, now time.T
 		updatedAt    string
 		createdAt    string
 	}
-	var all []rowData
+	var stale []rowData
 	for rows.Next() {
 		var r rowData
 		if err := rows.Scan(&r.id, &r.intervalDays, &r.ease, &r.stability, &r.difficulty, &r.lastReview, &r.updatedAt, &r.createdAt); err != nil {
+			rows.Close()
 			return err
 		}
-		all = append(all, r)
+		stale = append(stale, r)
 	}
 	if err := rows.Err(); err != nil {
+		rows.Close()
 		return err
 	}
+	rows.Close()
 
-	for _, r := range all {
-		stability := r.stability
-		if stability <= 0 {
-			if r.intervalDays > 0 {
-				stability = float64(r.intervalDays)
-			} else {
-				stability = srs.DefaultStabilityDays
-			}
-		}
-
-		difficulty := r.difficulty
-		if difficulty < 0 || difficulty > 1 {
-			difficulty = deriveDifficultyFromEase(r.ease)
-		}
-
-		lastReviewAt := strings.TrimSpace(r.lastReview)
-		if lastReviewAt == "" {
-			if strings.TrimSpace(r.updatedAt) != "" {
-				lastReviewAt = r.updatedAt
-			} else if strings.TrimSpace(r.createdAt) != "" {
-				lastReviewAt = r.createdAt
-			} else {
-				lastReviewAt = now.UTC().Format(time.RFC3339)
-			}
-		}
-
-		if _, err := s.db.ExecContext(ctx, `
+	if len(stale) > 0 {
+		stmt, err := tx.PrepareContext(ctx, `
 			UPDATE cards
 			SET stability_days = ?, difficulty = ?, last_review_at = ?
-			WHERE id = ?`, stability, difficulty, lastReviewAt, r.id); err != nil {
-			return err
+			WHERE id = ?`)
+		if err != nil {
+			return fmt.Errorf("prepare scheduler backfill: %w", err)
 		}
+		defer stmt.Close()
+
+		fallback := now.UTC().Format(time.RFC3339)
+		for _, r := range stale {
+			stability := r.stability
+			if stability <= 0 {
+				if r.intervalDays > 0 {
+					stability = float64(r.intervalDays)
+				} else {
+					stability = srs.DefaultStabilityDays
+				}
+			}
+
+			difficulty := r.difficulty
+			if difficulty < 0 || difficulty > 1 {
+				difficulty = deriveDifficultyFromEase(r.ease)
+			}
+
+			lastReviewAt := strings.TrimSpace(r.lastReview)
+			if lastReviewAt == "" {
+				if updated := strings.TrimSpace(r.updatedAt); updated != "" {
+					lastReviewAt = updated
+				} else if created := strings.TrimSpace(r.createdAt); created != "" {
+					lastReviewAt = created
+				} else {
+					lastReviewAt = fallback
+				}
+			}
+
+			if _, err := stmt.ExecContext(ctx, stability, difficulty, lastReviewAt, r.id); err != nil {
+				return fmt.Errorf("backfill card %s: %w", r.id, err)
+			}
+		}
+	}
+
+	if _, err := tx.ExecContext(ctx, `INSERT OR REPLACE INTO schema_meta (key, value) VALUES (?, ?)`,
+		schedulerBackfillMarker, time.Now().UTC().Format(time.RFC3339)); err != nil {
+		return fmt.Errorf("record scheduler backfill: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit scheduler backfill: %w", err)
 	}
 	return nil
 }
