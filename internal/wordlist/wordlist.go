@@ -80,20 +80,39 @@ var nonWordPos = map[string]bool{
 	"combining-form": true, "morpheme": true, "character": true,
 }
 
-// functionPos are the closed-class parts of speech. Adverbs are deliberately not
-// here: "gestern" and "immer" are vocabulary, even though "mit" and "aber" are
-// also filed as adverbs.
+// functionPos are the closed-class parts of speech. Numerals are not here: "vier"
+// and "erster" are vocabulary a learner must study, and treating them as closed
+// class made the ordinal reading shadow the adjective "erste". Adverbs are not
+// here either: "gestern" and "immer" are vocabulary, even though "mit" and "aber"
+// are also filed as adverbs.
 var functionPos = map[string]bool{
 	"pron": true, "det": true, "article": true, "prep": true, "conj": true,
-	"particle": true, "num": true, "contraction": true, "postp": true,
+	"particle": true, "contraction": true, "postp": true,
 }
 
 // marginalPos are the parts of speech where sharing a spelling with a closed-class
 // word means the reading is metalinguistic or grammatical rather than a word in
 // its own right — "das Ich" (the ego), "Es" (E-flat), "mit" and "aber" as adverbs.
-// Verbs are exempt on purpose: "sein" and "haben" share their spelling with
-// function words and are still core vocabulary.
-var marginalPos = map[string]bool{"noun": true, "adj": true, "adv": true}
+// Adjectives are not here: an adjective that shares its spelling with a
+// preposition ("lang", "allein") is still the ordinary word, and demoting them
+// buried core vocabulary at the end of A1. Verbs are exempt for the same reason:
+// "sein" and "haben" are core vocabulary.
+var marginalPos = map[string]bool{"noun": true, "adv": true}
+
+// markedTags mark a reading as marginal, so it is not what a shared spelling's
+// frequency comes from. "frau" is a rare, humorous pronoun and "Mensch" is an
+// ordinary noun; without this check the noun was ranked last because of the
+// pronoun.
+// predicativeTags mark an adjective that only works in predicate position — "auf"
+// (open), "ein" (on), "um" (finished). Each shares its spelling with a preposition
+// and would otherwise lead the deck.
+var predicativeTags = map[string]bool{"predicative": true, "indeclinable": true}
+
+var markedTags = map[string]bool{
+	"rare": true, "nonstandard": true, "neologism": true, "dated": true,
+	"poetic": true, "slang": true, "humorous": true, "eye-dialect": true,
+	"obsolete": true, "archaic": true, "informal": true,
+}
 
 // formTags mark a sense that exists only to point at another lemma.
 var formTags = map[string]bool{"form-of": true, "alt-of": true, "alternative": true}
@@ -131,6 +150,9 @@ type Card struct {
 	// happens to be spelled the same lowercased. It is kept, but ordered after
 	// every properly ranked card.
 	Demoted bool
+	// marked records that the sense behind the card is a marginal reading (rare,
+	// archaic, or usable only in predicate position).
+	marked bool
 }
 
 // Stats reports what happened to the input, so a build can be audited instead of
@@ -150,11 +172,16 @@ type Stats struct {
 	Kept       int
 }
 
+// formRef is the lemma a form sense points at, e.g. {"word":"ein"} on "einen".
+type formRef struct {
+	Word string `json:"word"`
+}
+
 type sense struct {
-	Glosses []string `json:"glosses"`
-	Tags    []string `json:"tags"`
-	FormOf  any      `json:"form_of"`
-	AltOf   any      `json:"alt_of"`
+	Glosses []string  `json:"glosses"`
+	Tags    []string  `json:"tags"`
+	FormOf  []formRef `json:"form_of"`
+	AltOf   []formRef `json:"alt_of"`
 }
 
 type entry struct {
@@ -211,6 +238,10 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 	// adjective sharing one ("Ich" from ich, "Sein" from sein) inherited its rank
 	// from the other reading; it did not earn it.
 	classShadow := make(map[string]bool, 1<<12)
+	// parent lemma of every inflected form, keyed by the form's spelling. A rare
+	// verb whose spelling belongs to an article form ("einen" -> ein) is ranked
+	// by that article's token frequency.
+	formParent := make(map[string]string, 1<<17)
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 8*1024*1024)
 	for scanner.Scan() {
@@ -226,10 +257,22 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 			stats.Unparsable++
 			continue
 		}
-		if functionPos[normalizePos(e.Pos)] {
-			classShadow[strings.ToLower(strings.TrimSpace(e.Word))] = true
+		lower := strings.ToLower(strings.TrimSpace(e.Word))
+		form := isFormEntry(e)
+		if functionPos[normalizePos(e.Pos)] && !isMarkedEntry(e) {
+			classShadow[lower] = true
 		}
-		card, reason := buildCard(e, isFormEntry(e), ranks, keepPos, opts, maxGloss)
+		// Only a pure form entry shadows a spelling. A real word with one alt-of
+		// sense among its translations ("Wasser" -> clipping of Mineralwasser) is
+		// not a form of anything.
+		if form {
+			if parent := formParentWord(e); parent != "" {
+				if _, seen := formParent[lower]; !seen {
+					formParent[lower] = parent
+				}
+			}
+		}
+		card, reason := buildCard(e, form, ranks, keepPos, opts, maxGloss)
 		switch reason {
 		case reasonNone:
 		case reasonPos:
@@ -276,7 +319,8 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 		// speech. Inflected forms are not a usable signal here: "Zeuge" and "Reifen"
 		// share their spelling with the verb forms "zeuge" and "reifen" and are
 		// ordinary nouns — demoting on that basis cost 490 real cards.
-		c.Demoted = marginalPos[c.Pos] && classShadow[lower]
+		closedForm := formParent[lower] != "" && classShadow[formParent[lower]]
+		c.Demoted = closedForm || ((marginalPos[c.Pos] || c.marked) && classShadow[lower])
 		groups[lower] = append(groups[lower], c)
 	}
 
@@ -379,7 +423,7 @@ func buildCard(e entry, form bool, ranks map[string]int, keepPos map[string]bool
 		return Card{}, reasonCommon
 	}
 
-	back := pickGloss(e.Senses, word, maxGloss)
+	back, servingTags := pickGloss(e.Senses, word, maxGloss)
 	if back == "" {
 		return Card{}, reasonGloss
 	}
@@ -388,7 +432,14 @@ func buildCard(e entry, form bool, ranks map[string]int, keepPos map[string]bool
 	if opts.Level != "" {
 		tags = append(tags, strings.ToLower(strings.TrimSpace(opts.Level)))
 	}
-	return Card{Front: word, Back: back, Pos: pos, Rank: rank, Tags: tags}, reasonNone
+	return Card{
+		Front:  word,
+		Back:   back,
+		Pos:    pos,
+		Rank:   rank,
+		Tags:   tags,
+		marked: hasTag(servingTags, markedTags) || hasTag(servingTags, predicativeTags),
+	}, reasonNone
 }
 
 // isFormEntry reports whether the entry exists only to point at another lemma.
@@ -400,17 +451,45 @@ func isFormEntry(e entry) bool {
 		return false
 	}
 	for _, s := range e.Senses {
-		if s.FormOf == nil && s.AltOf == nil && !hasTag(s.Tags, formTags) {
+		if len(s.FormOf) == 0 && len(s.AltOf) == 0 && !hasTag(s.Tags, formTags) {
 			return false
 		}
 	}
 	return true
 }
 
+// isMarkedEntry reports whether every sense of the entry carries a marginal label
+// (rare, slang, archaic...), i.e. the reading is not the common one.
+func isMarkedEntry(e entry) bool {
+	if len(e.Senses) == 0 {
+		return false
+	}
+	for _, s := range e.Senses {
+		if !hasTag(s.Tags, markedTags) {
+			return false
+		}
+	}
+	return true
+}
+
+// formParentWord returns the lemma a form entry points at, lowercased, or "" when
+// the entry is not a form. Only the first reference is needed: it decides whether
+// the spelling belongs to a closed-class word.
+func formParentWord(e entry) string {
+	for _, s := range e.Senses {
+		for _, ref := range append(append([]formRef{}, s.FormOf...), s.AltOf...) {
+			if word := strings.ToLower(strings.TrimSpace(ref.Word)); word != "" {
+				return word
+			}
+		}
+	}
+	return ""
+}
+
 // pickGloss returns the first sense that actually translates the word. Wiktionary
 // lists senses in order of primacy, so the first usable one is the right one;
 // merging further senses mostly adds noise ("free; unenslaved; unimprisoned").
-func pickGloss(senses []sense, word string, maxGloss int) string {
+func pickGloss(senses []sense, word string, maxGloss int) (string, []string) {
 	for _, s := range senses {
 		if len(s.Glosses) == 0 || hasTag(s.Tags, metaTags) {
 			continue
@@ -425,10 +504,10 @@ func pickGloss(senses []sense, word string, maxGloss int) string {
 			if gloss == "" || isMetaGloss(gloss) || strings.EqualFold(gloss, word) {
 				continue
 			}
-			return gloss
+			return gloss, s.Tags
 		}
 	}
-	return ""
+	return "", nil
 }
 
 // cleanGloss strips the dictionary apparatus — leading usage labels, chained

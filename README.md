@@ -243,10 +243,14 @@ Entries are rejected when they are inflected forms (`ist`, `Häuser`), when a
 sense only describes another lemma (`plural of Haus`, `obsolete form of freien`),
 when a sense is tagged as existing only inside compounds (`ein-` as "motion into
 something"), or when a sense is the auxiliary use of a verb (`haben` as "forms
-the perfect aspect" - the card is "to have; to own"). A noun or adjective whose
-lowercase spelling belongs to a closed-class word keeps its card but ranks last,
-because its frequency came from that other word: `Ich` (the ego) inherits the
-rank of the pronoun `ich`.
+the perfect aspect" - the card is "to have; to own"). A card whose frequency
+came from a different word with the same spelling keeps its place in the deck but
+ranks last: `Ich` (the ego) inherits the rank of the pronoun `ich`, `einen` (to
+unite) inherits the rank of the article form `einen` <- `ein`, and `auf` (open)
+inherits the rank of the preposition. Two limits keep that from over-reaching: a
+reading that Wiktionary marks rare, slang or archaic does not shadow anything
+(`Frau` outranks the rare pronoun `frau`), and an ordinary adjective does not lose
+its rank to a preposition it happens to be spelled like (`lang`).
 
 Adverbs are worth knowing about: they are in the default set because `gestern`
 and `immer` are vocabulary, but `mit`, `aber` and `so` are filed as adverbs in

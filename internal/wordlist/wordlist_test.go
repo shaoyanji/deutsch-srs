@@ -348,3 +348,97 @@ func TestBuildStillDropsPureFormEntries(t *testing.T) {
 		t.Fatalf("stats.FormOf = %d, want 1", stats.FormOf)
 	}
 }
+
+func TestBuildDemotesVerbSpelledLikeAnArticleForm(t *testing.T) {
+	// "einen" is a real verb (to unite) and also the accusative form of the
+	// article "ein". Its rank 47 is the article's, so the verb must not lead A1.
+	entries := `{"word":"ein","pos":"article","senses":[{"glosses":["a, an"]}]}
+{"word":"einen","pos":"article","senses":[{"form_of":[{"word":"ein"}],"glosses":["accusative masculine of ein"]}]}
+{"word":"einen","pos":"verb","senses":[{"glosses":["to unite"]}]}
+{"word":"gehen","pos":"verb","senses":[{"glosses":["to go"]}]}`
+
+	cards, stats := build(t, entries, ranksOf("ein", "einen", "gehen"), Options{})
+	if len(cards) != 2 {
+		t.Fatalf("cards = %+v", cards)
+	}
+	if cards[0].Front != "gehen" || cards[1].Front != "einen" {
+		t.Fatalf("order = %v, want gehen then einen", []string{cards[0].Front, cards[1].Front})
+	}
+	if !cards[1].Demoted {
+		t.Fatalf("verb ranked by an article form was not demoted")
+	}
+	if stats.Demoted != 1 {
+		t.Fatalf("stats.Demoted = %d, want 1", stats.Demoted)
+	}
+}
+
+func TestBuildKeepsVerbSpelledLikeAContentWordForm(t *testing.T) {
+	// "reifen" is a verb and also a form of the adjective "reif". Neither is
+	// closed-class, so the verb keeps the rank it earned.
+	entries := `{"word":"reif","pos":"adj","senses":[{"glosses":["ripe"]}]}
+{"word":"reifen","pos":"adj","senses":[{"form_of":[{"word":"reif"}],"glosses":["strong plural of reif"]}]}
+{"word":"reifen","pos":"verb","senses":[{"glosses":["to ripen"]}]}`
+
+	cards, stats := build(t, entries, ranksOf("reif", "reifen"), Options{})
+	for _, c := range cards {
+		if c.Demoted {
+			t.Fatalf("%s demoted, but the parent is a content word", c.Front)
+		}
+	}
+	if stats.Demoted != 0 {
+		t.Fatalf("stats.Demoted = %d, want 0", stats.Demoted)
+	}
+}
+
+func TestBuildDemotesPredicateOnlyAdjective(t *testing.T) {
+	// "auf" as an adjective ("open") is a predicate-only reading of a preposition
+	// and led A1 at rank 3 until this was handled.
+	entries := `{"word":"auf","pos":"prep","senses":[{"glosses":["on, upon"]}]}
+{"word":"auf","pos":"adj","senses":[{"tags":["indeclinable","predicative"],"glosses":["open"]}]}
+{"word":"Haus","pos":"noun","senses":[{"glosses":["house"]}]}`
+
+	cards, stats := build(t, entries, ranksOf("auf", "Haus"), Options{})
+	if len(cards) != 2 {
+		t.Fatalf("cards = %+v", cards)
+	}
+	if cards[0].Front != "Haus" {
+		t.Fatalf("order = %v, want Haus first", []string{cards[0].Front, cards[1].Front})
+	}
+	if !cards[1].Demoted {
+		t.Fatalf("predicate-only adjective was not demoted")
+	}
+	if stats.Demoted != 1 {
+		t.Fatalf("stats.Demoted = %d, want 1", stats.Demoted)
+	}
+}
+
+func TestBuildKeepsOrdinaryAdjectiveWithFunctionWordHomograph(t *testing.T) {
+	// "lang" is an ordinary adjective that also exists as a postposition, and
+	// "allein" survives for the same reason: the adjective is the word learners
+	// need, so it keeps its rank.
+	entries := `{"word":"lang","pos":"postp","senses":[{"glosses":["for (temporal)"]}]}
+{"word":"lang","pos":"adj","senses":[{"glosses":["long; lengthy"]}]}`
+
+	cards, _ := build(t, entries, ranksOf("lang"), Options{})
+	if len(cards) != 1 || cards[0].Demoted {
+		t.Fatalf("cards = %+v, want one undemoted card", cards)
+	}
+	if cards[0].Back != "long; lengthy" {
+		t.Fatalf("back = %q", cards[0].Back)
+	}
+}
+
+func TestBuildKeepsNounWithRareClosedClassHomograph(t *testing.T) {
+	// "Frau" is a noun; "frau" is a rare, slang pronoun. Only an unmarked
+	// closed-class reading may shadow a spelling.
+	entries := `{"word":"frau","pos":"pron","senses":[{"tags":["rare","slang","humorous"],"glosses":["one, they"]}]}
+{"word":"Frau","pos":"noun","senses":[{"glosses":["woman"]}]}`
+
+	cards, stats := build(t, entries, ranksOf("frau"), Options{})
+	if len(cards) != 1 || cards[0].Demoted {
+		t.Fatalf("cards = %+v, want the noun kept at its rank", cards)
+	}
+	if stats.Demoted != 0 {
+		t.Fatalf("stats.Demoted = %d, want 0", stats.Demoted)
+	}
+}
