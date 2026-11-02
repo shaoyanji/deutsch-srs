@@ -37,4 +37,33 @@ var migrations = []string{
 		new_per_day INTEGER NOT NULL,
 		updated_at TEXT NOT NULL
 	);`,
+	`CREATE TABLE IF NOT EXISTS schema_meta (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL
+	);`,
+	// cards is an ordinary rowid table, so an external-content FTS5 table keyed
+	// on cards.rowid keeps no second copy of the text. 'rebuild' (see
+	// ensureSearchIndex) fills it once for databases that predate it.
+	`CREATE VIRTUAL TABLE IF NOT EXISTS cards_fts USING fts5(
+		front, back, tags, deck,
+		content='cards',
+		tokenize='unicode61'
+	);`,
+	// Triggers, not application code: no write path can forget to index a card.
+	// UPDATE OF fires only when searchable text changes, so answering a card
+	// does not reindex it.
+	`CREATE TRIGGER IF NOT EXISTS cards_fts_ai AFTER INSERT ON cards BEGIN
+		INSERT INTO cards_fts(rowid, front, back, tags, deck)
+		VALUES (new.rowid, new.front, new.back, new.tags, new.deck);
+	END;`,
+	`CREATE TRIGGER IF NOT EXISTS cards_fts_ad AFTER DELETE ON cards BEGIN
+		INSERT INTO cards_fts(cards_fts, rowid, front, back, tags, deck)
+		VALUES ('delete', old.rowid, old.front, old.back, old.tags, old.deck);
+	END;`,
+	`CREATE TRIGGER IF NOT EXISTS cards_fts_au AFTER UPDATE OF front, back, tags, deck ON cards BEGIN
+		INSERT INTO cards_fts(cards_fts, rowid, front, back, tags, deck)
+		VALUES ('delete', old.rowid, old.front, old.back, old.tags, old.deck);
+		INSERT INTO cards_fts(rowid, front, back, tags, deck)
+		VALUES (new.rowid, new.front, new.back, new.tags, new.deck);
+	END;`,
 }

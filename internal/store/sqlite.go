@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,6 +36,16 @@ type SQLiteStore struct {
 }
 
 func Open(path string) (*SQLiteStore, error) {
+	// A first run against the CLI's default path (~/.local/share/...) has no
+	// directory yet, and sqlite reports that as a bare "unable to open database
+	// file". Create it here so every caller gets the same behaviour.
+	if path != "" && path != ":memory:" {
+		if dir := filepath.Dir(path); dir != "." && dir != "" {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return nil, fmt.Errorf("create database directory: %w", err)
+			}
+		}
+	}
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
@@ -61,6 +73,9 @@ func (s *SQLiteStore) Migrate(ctx context.Context) error {
 	}
 	if err := s.backfillCardSchedulerState(ctx, time.Now().UTC()); err != nil {
 		return fmt.Errorf("backfill scheduler state: %w", err)
+	}
+	if err := s.ensureSearchIndex(ctx); err != nil {
+		return fmt.Errorf("migrate search index: %w", err)
 	}
 	return nil
 }
@@ -121,24 +136,6 @@ func (s *SQLiteStore) DueCards(ctx context.Context, deck string, limit int, now 
 		WHERE deck = ? AND suspended = 0 AND due_at <= ?
 		ORDER BY due_at ASC, created_at ASC
 		LIMIT ?`, deck, now.UTC().Format(time.RFC3339), limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return scanCards(rows)
-}
-
-func (s *SQLiteStore) SearchCards(ctx context.Context, query string, limit int) ([]srs.Card, error) {
-	if limit <= 0 {
-		limit = 20
-	}
-	pattern := "%" + strings.ToLower(strings.TrimSpace(query)) + "%"
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, deck, front, back, note_type, tags, due_at, interval_days, ease, stability_days, difficulty, last_review_at, reps, lapses, suspended, created_at, updated_at
-		FROM cards
-		WHERE LOWER(front) LIKE ? OR LOWER(back) LIKE ? OR LOWER(tags) LIKE ? OR LOWER(deck) LIKE ?
-		ORDER BY updated_at DESC
-		LIMIT ?`, pattern, pattern, pattern, pattern, limit)
 	if err != nil {
 		return nil, err
 	}
