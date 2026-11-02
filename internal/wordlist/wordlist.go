@@ -108,6 +108,10 @@ var marginalPos = map[string]bool{"noun": true, "adv": true}
 // and would otherwise lead the deck.
 var predicativeTags = map[string]bool{"predicative": true, "indeclinable": true}
 
+// derivedTags mark a relational adjective, which is built on a noun ("plan" from
+// Plan) and therefore shares the noun's frequency without being that word.
+var derivedTags = map[string]bool{"relational": true}
+
 var markedTags = map[string]bool{
 	"rare": true, "nonstandard": true, "neologism": true, "dated": true,
 	"poetic": true, "slang": true, "humorous": true, "eye-dialect": true,
@@ -137,6 +141,14 @@ type Options struct {
 	MaxGloss int
 	// Level, when set, tags every card with that level (a1..b2).
 	Level string
+	// Exclude drops spellings outright, whatever their part of speech, keyed
+	// lowercase. It is how a vocabulary deck keeps out function words that
+	// Wiktionary files as nouns: "Ja" ("a yes") and "Habe" ("belongings") are
+	// cards whose rank belongs to the particle, not to the word.
+	Exclude map[string]bool
+	// ContentOnly drops a card whose frequency rank belongs to another word
+	// with the same spelling, instead of keeping it at the end of the deck.
+	ContentOnly bool
 }
 
 // Card is one word/translation pair.
@@ -153,6 +165,17 @@ type Card struct {
 	// marked records that the sense behind the card is a marginal reading (rare,
 	// archaic, or usable only in predicate position).
 	marked bool
+	// derived records a relational adjective ("plan" = planar, from Plan;
+	// "wollen" = woollen, from Wolle). It is built on a noun rather than being a
+	// word of its own, so it never earns the spelling's rank: without this the
+	// deck taught "plan -> planar, flat" where der Plan (the plan) belongs.
+	derived bool
+	// predicative records an adjective that exists only in predicate position
+	// ("er ist weg", "es tut mir leid"). Such a reading never wins a spelling
+	// against the noun or verb behind it, because the frequency belongs to the
+	// adverb: "weg" at rank 129 is the adverb "away", and it was burying
+	// der Weg, the word a learner actually needs.
+	predicative bool
 }
 
 // Stats reports what happened to the input, so a build can be audited instead of
@@ -169,6 +192,8 @@ type Stats struct {
 	NoGloss    int
 	Duplicate  int
 	Demoted    int
+	Excluded   int
+	Shadowed   int
 	Kept       int
 }
 
@@ -293,13 +318,19 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 		case reasonCommon:
 			stats.TooCommon++
 			continue
+		case reasonExcluded:
+			stats.Excluded++
+			continue
 		default:
 			stats.NoGloss++
 			continue
 		}
+		// Several readings can share a spelling and a rank (the verb "wollen" and
+		// the adjective "wollen", "woolen"). Comparing instead of taking whichever
+		// came first in the file is what stops the deck depending on entry order.
 		if prev, dup := byWord[card.Front]; dup {
 			stats.Duplicate++
-			if prev.Rank != 0 && prev.Rank <= card.Rank {
+			if !betterCard(card, prev) {
 				continue
 			}
 		}
@@ -320,7 +351,7 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 		// share their spelling with the verb forms "zeuge" and "reifen" and are
 		// ordinary nouns — demoting on that basis cost 490 real cards.
 		closedForm := formParent[lower] != "" && classShadow[formParent[lower]]
-		c.Demoted = closedForm || ((marginalPos[c.Pos] || c.marked) && classShadow[lower])
+		c.Demoted = closedForm || c.predicative || c.derived || ((marginalPos[c.Pos] || c.marked) && classShadow[lower])
 		groups[lower] = append(groups[lower], c)
 	}
 
@@ -336,6 +367,10 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 			}
 		}
 		if best.Demoted {
+			if opts.ContentOnly {
+				stats.Shadowed++
+				continue
+			}
 			stats.Demoted++
 		}
 		cards = append(cards, best)
@@ -365,7 +400,8 @@ func Build(r io.Reader, ranks map[string]int, opts Options) ([]Card, Stats, erro
 
 // betterCard decides which of two readings of the same spelling to keep: an
 // undemoted card beats a demoted one, a better rank beats a worse one, and a
-// lowercase spelling beats a capitalised noun built on it ("ja" over "Ja").
+// verb beats an adjective beats a noun. Up to the last step the deck was
+// whichever reading the file happened to list first.
 func betterCard(a, b Card) bool {
 	if a.Demoted != b.Demoted {
 		return !a.Demoted
@@ -380,12 +416,35 @@ func betterCard(a, b Card) bool {
 	if aRank != bRank {
 		return aRank < bRank
 	}
+	if a.Pos != b.Pos {
+		return posPriority(a.Pos) < posPriority(b.Pos)
+	}
 	aLower := a.Front == strings.ToLower(a.Front)
 	bLower := b.Front == strings.ToLower(b.Front)
 	if aLower != bLower {
 		return aLower
 	}
+	if a.Back != b.Back {
+		return a.Back < b.Back
+	}
 	return a.Front < b.Front
+}
+
+// posPriority orders two readings that share a spelling, a rank and a casing.
+// Without it the card was whatever the map yielded last: "wollen" came out as
+// "woolen", the rare adjective, on one run and "to want" on the next.
+func posPriority(pos string) int {
+	switch pos {
+	case "verb":
+		return 0
+	case "adj":
+		return 1
+	case "noun":
+		return 2
+	case "adv":
+		return 3
+	}
+	return 4
 }
 
 const (
@@ -397,6 +456,7 @@ const (
 	reasonRare     = "rare"
 	reasonCommon   = "common"
 	reasonGloss    = "gloss"
+	reasonExcluded = "excluded"
 )
 
 func buildCard(e entry, form bool, ranks map[string]int, keepPos map[string]bool, opts Options, maxGloss int) (Card, string) {
@@ -412,6 +472,9 @@ func buildCard(e entry, form bool, ranks map[string]int, keepPos map[string]bool
 		return Card{}, reasonForm
 	}
 
+	if opts.Exclude[strings.ToLower(word)] {
+		return Card{}, reasonExcluded
+	}
 	rank := ranks[strings.ToLower(word)]
 	if rank == 0 && !opts.AllowUnranked {
 		return Card{}, reasonUnranked
@@ -433,12 +496,14 @@ func buildCard(e entry, form bool, ranks map[string]int, keepPos map[string]bool
 		tags = append(tags, strings.ToLower(strings.TrimSpace(opts.Level)))
 	}
 	return Card{
-		Front:  word,
-		Back:   back,
-		Pos:    pos,
-		Rank:   rank,
-		Tags:   tags,
-		marked: hasTag(servingTags, markedTags) || hasTag(servingTags, predicativeTags),
+		Front:       word,
+		Back:        back,
+		Pos:         pos,
+		Rank:        rank,
+		Tags:        tags,
+		marked:      hasTag(servingTags, markedTags) || hasTag(servingTags, predicativeTags),
+		predicative: hasTag(servingTags, predicativeTags),
+		derived:     hasTag(servingTags, derivedTags),
 	}, reasonNone
 }
 
