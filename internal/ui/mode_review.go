@@ -32,6 +32,9 @@ func (m Model) viewReview() string {
 		b.WriteString(m.theme.StatusLine.Render(reviewQueueStatus(m.reviewIdx, len(m.reviewCards))) + "\n\n")
 		b.WriteString(fmt.Sprintf("Batch complete: %d cards.\n", len(m.reviewCards)))
 		b.WriteString(m.theme.Muted.Render("Press enter for the next batch, esc to return to the deck list."))
+		if len(m.undoStack) > 0 {
+			b.WriteString("\n" + m.theme.Muted.Render("u undoes the last action."))
+		}
 		if m.reviewNewPerDay > 0 {
 			b.WriteString("\n\n" + m.theme.StatusLine.Render(fmt.Sprintf("New cards today: %d/%d", m.reviewNewToday, m.reviewNewPerDay)))
 		}
@@ -59,6 +62,10 @@ func (m Model) viewReview() string {
 		b.WriteString(m.theme.Muted.Render("Grade now: 1 Again, 2 Hard, 3 Good, 4 Easy"))
 	} else {
 		b.WriteString(m.theme.Muted.Render("Press space to reveal answer"))
+	}
+	b.WriteString("\n" + m.theme.Muted.Render("b bury · x suspend · u undo"))
+	if m.infoText != "" {
+		b.WriteString("\n" + m.theme.StatusLine.Render(m.infoText))
 	}
 	if m.errText != "" {
 		b.WriteString("\n\n" + m.theme.Error.Render("Review error: "+m.errText))

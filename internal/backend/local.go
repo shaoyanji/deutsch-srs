@@ -103,6 +103,31 @@ func (b *LocalBackend) AnswerCard(ctx context.Context, cardID string, grade srs.
 	return b.store.InsertReviewLog(ctx, cardID, grade, b.now().UTC(), next.IntervalDays, next.Ease)
 }
 
+func (b *LocalBackend) SuspendCard(ctx context.Context, cardID string) error {
+	return b.store.SetCardSuspended(ctx, cardID, true, b.now().UTC())
+}
+
+func (b *LocalBackend) UnsuspendCard(ctx context.Context, cardID string) error {
+	return b.store.SetCardSuspended(ctx, cardID, false, b.now().UTC())
+}
+
+// BuryCard sets the card aside for a day without grading it, so a card the
+// learner cannot face right now does not distort the schedule.
+func (b *LocalBackend) BuryCard(ctx context.Context, cardID string) error {
+	now := b.now().UTC()
+	return b.store.SetCardDue(ctx, cardID, now.Add(24*time.Hour), now)
+}
+
+func (b *LocalBackend) UndoReview(ctx context.Context, undo ReviewUndo) error {
+	if err := b.store.RestoreCard(ctx, undo.Card); err != nil {
+		return err
+	}
+	if !undo.Graded {
+		return nil
+	}
+	return b.store.DeleteLastReviewLog(ctx, undo.Card.ID)
+}
+
 func (b *LocalBackend) SearchCards(ctx context.Context, query string, limit int) ([]srs.Card, error) {
 	return b.store.SearchCards(ctx, query, limit)
 }

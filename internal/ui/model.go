@@ -92,6 +92,11 @@ type Model struct {
 	// at the end of the current session queue.
 	pendingAgainCard *srs.Card
 
+	// undoStack holds the last few review actions so they can be taken back;
+	// pendingUndo is the action in flight, pushed once the backend stored it.
+	undoStack   []undoEntry
+	pendingUndo *undoEntry
+
 	addInputs    []textinput.Model
 	focusedInput int
 
@@ -178,6 +183,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.reviewIdx = 0
 		m.revealed = false
 		m.pendingAgainCard = nil
+		m.undoStack = nil
+		m.pendingUndo = nil
 		m.reviewNewPerDay = msg.queue.NewPerDay
 		m.reviewNewToday = msg.queue.NewToday
 		m.reviewNewRemaining = msg.queue.NewRemaining
@@ -205,12 +212,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
 	case answerMsg:
 		if msg.err != nil {
+			m.pendingUndo = nil
 			m.setError("answer card", msg.err)
 			return m, nil
 		}
 		m.errText = ""
-		if m.isFirstReview(msg.cardID) {
+		m.infoText = ""
+		first := m.isFirstReview(msg.cardID)
+		if first {
 			m.reviewNewToday++
+		}
+		// The grade enters the undo stack only once the backend has stored it,
+		// so a failed answer cannot leave a phantom undo behind.
+		if m.pendingUndo != nil {
+			m.pendingUndo.countedNew = first
+			m.pushUndo(*m.pendingUndo)
+			m.pendingUndo = nil
 		}
 		// Re-queue "Again" cards to the end of the session queue
 		if m.pendingAgainCard != nil {
@@ -219,6 +236,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.reviewIdx++
 		m.revealed = false
+		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
+	case asideMsg:
+		if msg.err != nil {
+			action := "bury card"
+			if msg.suspend {
+				action = "suspend card"
+			}
+			m.setError(action, msg.err)
+			return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
+		}
+		m.errText = ""
+		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
+	case undoMsg:
+		if msg.err != nil {
+			m.setError("undo", msg.err)
+			return m, nil
+		}
+		m.errText = ""
 		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
 	case searchMsg:
 		if msg.err != nil {
@@ -366,6 +401,12 @@ func (m Model) updateBrowse(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Undo is checked before the end-of-queue guard: the action worth taking
+	// back is often the one that emptied the queue, and that is exactly when
+	// the learner reaches for it.
+	if key.Matches(msg, m.keys.Undo) {
+		return m.undoLast()
+	}
 	if m.reviewIdx >= len(m.reviewCards) {
 		// Batch finished: enter pulls the next batch instead of sending the
 		// learner back to the deck list and making them pick the deck again.
@@ -386,6 +427,10 @@ func (m Model) updateReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.gradeCurrentCard(srs.GradeGood)
 	case key.Matches(msg, m.keys.Easy):
 		return m.gradeCurrentCard(srs.GradeEasy)
+	case key.Matches(msg, m.keys.Bury):
+		return m.setAside(false)
+	case key.Matches(msg, m.keys.Suspend):
+		return m.setAside(true)
 	}
 	return m, nil
 }
@@ -395,10 +440,13 @@ func (m Model) gradeCurrentCard(grade srs.ReviewGrade) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	card := m.reviewCards[m.reviewIdx]
+	entry := undoEntry{card: card, graded: true, index: m.reviewIdx, verb: "grade"}
 	// If grading "Again", mark the card to be re-queued at the end of the session
 	if grade == srs.GradeAgain {
 		m.pendingAgainCard = &card
+		entry.requeued = true
 	}
+	m.pendingUndo = &entry
 	return m, m.cmdAnswerCard(card.ID, grade)
 }
 

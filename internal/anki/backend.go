@@ -159,3 +159,33 @@ func (b *Backend) ReviewQueue(ctx context.Context, deck string, limit int) (back
 	}
 	return backend.Queue{Cards: cards}, nil
 }
+
+// Unsupported in AnkiConnect: bury and suspend are card actions there, so they
+// map straight onto the collection and no local state is kept.
+
+func (b *Backend) SuspendCard(ctx context.Context, cardID string) error {
+	return b.cardAction(ctx, "suspend", cardID)
+}
+
+func (b *Backend) UnsuspendCard(ctx context.Context, cardID string) error {
+	return b.cardAction(ctx, "unsuspend", cardID)
+}
+
+func (b *Backend) BuryCard(ctx context.Context, cardID string) error {
+	return b.cardAction(ctx, "bury", cardID)
+}
+
+// UndoReview leans on Anki's own undo stack instead of replaying state: the
+// grade, bury and suspend above were all Anki actions, so the last one is the
+// one the caller means.
+func (b *Backend) UndoReview(context.Context, backend.ReviewUndo) error {
+	return b.client.Call(context.Background(), "undo", nil, nil)
+}
+
+func (b *Backend) cardAction(ctx context.Context, action, cardID string) error {
+	id, err := strconv.ParseInt(cardID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("anki %s: card id %q: %w", action, cardID, err)
+	}
+	return b.client.Call(ctx, action, map[string]any{"cards": []int64{id}}, nil)
+}
