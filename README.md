@@ -109,6 +109,7 @@ On first run with the `-starter` flag (default: `./decks/starter.yaml`), the app
 | `b` | Bury — out of today's queue, back tomorrow, schedule untouched |
 | `x` | Suspend — hidden until unsuspended, schedule untouched |
 | `u` | Undo the last grade, bury or suspend |
+| `r` | Read the rule this card tests |
 
 Bury and suspend are deliberately not grades: a card you cannot face today
 should not be scored as a lapse, so neither action moves the interval, ease or
@@ -116,6 +117,11 @@ repetition count. `u` is the way back out of all three — it restores the card'
 stored state, puts it back in its slot in the session, and takes a grade back
 out of today's review count and the review log. The last 50 actions are
 undoable, as long as the session lasts.
+
+`r` opens the card a drill points at: authored decks tag a drill with
+`req-<key>` and the rule it tests with `id-<key>`, so the pair is resolved by tag
+and the rule is shown read-only. The drill stays where it was, and `Esc` closes
+the panel before it leaves the deck.
 
 #### Global
 | Key | Action |

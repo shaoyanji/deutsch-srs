@@ -88,6 +88,13 @@ type Model struct {
 	reviewNewRemaining int
 	newCounted         map[string]bool
 
+	// prereq is the rule the card on screen tests, resolved from its `req-`
+	// tag; prereqOpen says whether the panel is showing.
+	prereq     *srs.Card
+	prereqKey  string
+	prereqErr  string
+	prereqOpen bool
+
 	// pendingAgainCard holds a card graded "Again" that should be re-queued
 	// at the end of the current session queue.
 	pendingAgainCard *srs.Card
@@ -189,7 +196,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.reviewNewToday = msg.queue.NewToday
 		m.reviewNewRemaining = msg.queue.NewRemaining
 		m.mode = ModeReview
-		return m, nil
+		m.resetPrereq()
+		return m, m.withPrereq()
 	case statsMsg:
 		if msg.err != nil {
 			m.setError("load stats", msg.err)
@@ -236,7 +244,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.reviewIdx++
 		m.revealed = false
-		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
+		m.resetPrereq()
+		return m, m.withPrereq(m.cmdLoadDecks(), m.cmdLoadStats())
 	case asideMsg:
 		if msg.err != nil {
 			action := "bury card"
@@ -255,6 +264,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.errText = ""
 		return m, tea.Batch(m.cmdLoadDecks(), m.cmdLoadStats())
+	case prereqMsg:
+		// A lookup that lands after the learner has moved on describes the card
+		// behind them, so it is dropped rather than shown against the new one.
+		if msg.key != m.currentPrereqKey() {
+			return m, nil
+		}
+		m.prereqKey = msg.key
+		m.prereq = nil
+		m.prereqErr = ""
+		if msg.err != nil {
+			m.prereqErr = msg.err.Error()
+			return m, nil
+		}
+		if !msg.found {
+			m.prereqErr = "no card carries " + cardTagPrefix + msg.key
+			return m, nil
+		}
+		card := msg.card
+		m.prereq = &card
+		return m, nil
 	case searchMsg:
 		if msg.err != nil {
 			m.setError("search cards", msg.err)
@@ -305,6 +334,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		if key.Matches(msg, m.keys.Back) {
+			// The panel is a detour inside review: esc closes it before it
+			// leaves the deck.
+			if m.mode == ModeReview && m.prereqOpen {
+				m.prereqOpen = false
+				return m, nil
+			}
 			switch m.mode {
 			case ModeReview:
 				m.mode = ModeBrowse
@@ -431,6 +466,13 @@ func (m Model) updateReview(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.setAside(false)
 	case key.Matches(msg, m.keys.Suspend):
 		return m.setAside(true)
+	case key.Matches(msg, m.keys.Prereq):
+		if m.currentPrereqKey() == "" {
+			m.infoText = "This card tests nothing: it has no prerequisite."
+			return m, nil
+		}
+		m.prereqOpen = !m.prereqOpen
+		return m, nil
 	}
 	return m, nil
 }

@@ -164,3 +164,24 @@ func TestReviewQueuePutsDueBeforeNew(t *testing.T) {
 		t.Errorf("last card = %q, want the new card last", roomy.Cards[len(roomy.Cards)-1].Front)
 	}
 }
+
+// TestSearchReachesACardThatIsNotDue pins the lookup the prerequisite panel
+// makes: the rule a drill points at was learned weeks ago, so a search limited
+// to today's queue would answer "no such card" for the one card asked for.
+func TestSearchReachesACardThatIsNotDue(t *testing.T) {
+	now := time.Now()
+	col, err := OpenCollection(makeCollection(t, now))
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	defer col.Close()
+
+	be := &Backend{col: col, now: func() time.Time { return now }}
+	found, err := be.SearchCards(context.Background(), "hallo", 10)
+	if err != nil {
+		t.Fatalf("search: %v", err)
+	}
+	if len(found) != 1 || found[0].Front != "hallo" {
+		t.Fatalf("search = %+v, want the card due in three days", found)
+	}
+}

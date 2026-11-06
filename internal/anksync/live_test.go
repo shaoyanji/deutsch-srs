@@ -3,6 +3,7 @@ package anksync
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -74,5 +75,43 @@ func TestLiveServer(t *testing.T) {
 
 	if err := be.AnswerCard(ctx, "1", 3); err != ErrReadOnly {
 		t.Errorf("AnswerCard err = %v, want ErrReadOnly", err)
+	}
+
+	// The prerequisite edge is a tag pair the author writes: a drill carries
+	// `req-<key>`, the rule it tests carries `id-<key>`. When the served
+	// collection has such a card, the lookup the review panel makes must reach
+	// the rule — including one that is not due today.
+	all, err := be.SearchCards(ctx, "", 0)
+	if err != nil {
+		t.Fatalf("list cards: %v", err)
+	}
+	checked := 0
+	for _, c := range all {
+		key := ""
+		for _, tag := range c.Tags {
+			if rest, ok := strings.CutPrefix(tag, "req-"); ok {
+				key = rest
+				break
+			}
+		}
+		if key == "" {
+			continue
+		}
+		rules, err := be.SearchCards(ctx, "id-"+key, 20)
+		if err != nil {
+			t.Fatalf("resolve %s: %v", key, err)
+		}
+		if len(rules) == 0 {
+			t.Errorf("%q points at %q, and no card carries id-%s", c.Front, key, key)
+			continue
+		}
+		t.Logf("prereq %q -> %q", c.Front, rules[0].Front)
+		checked++
+		if checked == 3 {
+			break
+		}
+	}
+	if checked == 0 {
+		t.Log("served collection carries no req- tag; prerequisite check skipped")
 	}
 }

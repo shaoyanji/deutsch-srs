@@ -63,7 +63,7 @@ func (f *fakeBackend) Stats(context.Context) (backend.Stats, error) { return bac
 
 func (f *fakeBackend) Health(context.Context) error { return f.err }
 
-func reviewModel(be *fakeBackend, cards ...srs.Card) Model {
+func reviewModel(be backend.Backend, cards ...srs.Card) Model {
 	return Model{
 		backend:     be,
 		keys:        defaultKeys(),

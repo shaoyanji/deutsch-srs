@@ -64,6 +64,13 @@ func (m Model) viewReview() string {
 		b.WriteString(m.theme.Muted.Render("Press space to reveal answer"))
 	}
 	b.WriteString("\n" + m.theme.Muted.Render("b bury · x suspend · u undo"))
+	if key := m.currentPrereqKey(); key != "" {
+		b.WriteString("\n" + m.theme.StatusLine.Render("Rule: "+m.prereqLabel(key)))
+		b.WriteString(m.theme.Muted.Render("  ·  r to read it"))
+		if m.prereqOpen {
+			b.WriteString("\n\n" + m.theme.HelpBox.Render(m.viewPrereq(key)))
+		}
+	}
 	if m.infoText != "" {
 		b.WriteString("\n" + m.theme.StatusLine.Render(m.infoText))
 	}

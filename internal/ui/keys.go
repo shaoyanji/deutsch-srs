@@ -15,6 +15,7 @@ type keyMap struct {
 	Bury       key.Binding
 	Suspend    key.Binding
 	Undo       key.Binding
+	Prereq     key.Binding
 	Tab        key.Binding
 	Back       key.Binding
 	Help       key.Binding
@@ -41,6 +42,7 @@ func defaultKeys() keyMap {
 		Bury:       key.NewBinding(key.WithKeys("b"), key.WithHelp("b", "bury")),
 		Suspend:    key.NewBinding(key.WithKeys("x"), key.WithHelp("x", "suspend")),
 		Undo:       key.NewBinding(key.WithKeys("u"), key.WithHelp("u", "undo")),
+		Prereq:     key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "rule")),
 		Tab:        key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "switch")),
 		Back:       key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 		Help:       key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help")),
@@ -62,6 +64,6 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.Select, k.Reveal, k.Tab},
 		{k.Again, k.Hard, k.Good, k.Easy, k.Back, k.Help, k.Quit},
-		{k.Bury, k.Suspend, k.Undo},
+		{k.Bury, k.Suspend, k.Undo, k.Prereq},
 	}
 }

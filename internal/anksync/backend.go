@@ -180,26 +180,23 @@ func (b *Backend) ReviewQueue(ctx context.Context, deck string, limit int) (back
 	return q, nil
 }
 
-// SearchCards matches the query against front, back, deck and tags. The
-// collection is small enough to filter in memory, which avoids reimplementing
-// Anki's search grammar badly.
+// SearchCards matches the query against front, back, deck and tags, over the
+// whole collection — Anki's own findCards does the same, and a tag lookup for a
+// prerequisite has to reach a card that is not due today. The collection is
+// small enough to filter in memory, which avoids reimplementing Anki's search
+// grammar badly.
 func (b *Backend) SearchCards(ctx context.Context, query string, limit int) ([]srs.Card, error) {
 	col, err := b.snapshot(ctx)
 	if err != nil {
 		return nil, err
 	}
-	now := b.now()
+	cards, err := col.AllCards(b.now())
+	if err != nil {
+		return nil, err
+	}
 	needle := strings.ToLower(strings.TrimSpace(query))
-	cards, err := col.DueCards(ctx, "", 0, now)
-	if err != nil {
-		return nil, err
-	}
-	newCards, err := col.NewCards("", 0, now)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]srs.Card, 0, len(cards)+len(newCards))
-	for _, c := range append(cards, newCards...) {
+	out := make([]srs.Card, 0, len(cards))
+	for _, c := range cards {
 		if needle == "" || cardMatches(c, needle) {
 			out = append(out, c)
 		}

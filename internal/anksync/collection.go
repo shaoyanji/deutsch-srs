@@ -146,6 +146,17 @@ func (c *Collection) Decks(ctx context.Context, now time.Time) ([]srs.Deck, erro
 	return out, nil
 }
 
+// AllCards returns every card in the collection, due or not. A lookup needs the
+// whole set: the rule a drill points at is usually learned long ago, so a search
+// restricted to today's queue would miss exactly the card being asked for.
+func (c *Collection) AllCards(now time.Time) ([]srs.Card, error) {
+	rows, err := c.selectCards()
+	if err != nil {
+		return nil, err
+	}
+	return c.mapCards(rows, now), nil
+}
+
 // DueCards returns the cards the server's scheduler says are due now, in due
 // order. New cards are not included: they are not "due", they are an allowance.
 func (c *Collection) DueCards(_ context.Context, deck string, limit int, now time.Time) ([]srs.Card, error) {

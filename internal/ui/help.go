@@ -9,7 +9,7 @@ func (m Model) renderHelpOverlay(base string) string {
 		"deutsch-srs help",
 		"",
 		"Browse: j/k or arrows move, enter starts review",
-		"Review: space reveal, 1/2/3/4 grade, b bury, x suspend, u undo, esc back",
+		"Review: space reveal, 1/2/3/4 grade, b bury, x suspend, u undo, r rule, esc back",
 		"Add: tab switch fields, enter submit",
 		"Global: s search, a add, t stats, ? toggle help, q quit",
 	}
