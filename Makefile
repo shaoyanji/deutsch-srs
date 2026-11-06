@@ -3,6 +3,11 @@ CMD := ./cmd/$(APP)
 BIN_DIR := ./bin
 BIN := $(BIN_DIR)/$(APP)
 
+# Release binaries have to run where there is no glibc at all (NixOS), so the
+# build is static. CGO buys nothing here: SQLite is modernc.org/sqlite.
+CGO_ENABLED ?= 0
+export CGO_ENABLED
+
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
