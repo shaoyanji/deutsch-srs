@@ -6,8 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/shaoyanji/deutsch-srs/internal/anki"
+	"github.com/shaoyanji/deutsch-srs/internal/anksync"
 	"github.com/shaoyanji/deutsch-srs/internal/backend"
 	"github.com/shaoyanji/deutsch-srs/internal/ui"
+	"github.com/shaoyanji/deutsch-srs/internal/version"
 )
 
 type Config struct {
@@ -16,6 +18,12 @@ type Config struct {
 	StarterYML string
 	AnkiURL    string
 	NewPerDay  int
+
+	// anki-sync backend: a self-hosted sync server, read-only.
+	SyncURL   string
+	SyncUser  string
+	SyncPass  string
+	SyncCache string
 }
 
 func Run(cfg Config) error {
@@ -51,6 +59,24 @@ func newBackend(cfg Config) (backend.Backend, func() error, error) {
 			return nil, nil, fmt.Errorf("anki url is required in anki mode")
 		}
 		return anki.NewBackend(cfg.AnkiURL), nil, nil
+	case "anki-sync", "ankisync":
+		if cfg.SyncURL == "" {
+			return nil, nil, fmt.Errorf("sync url is required in anki-sync mode")
+		}
+		if cfg.SyncUser == "" {
+			return nil, nil, fmt.Errorf("sync user is required in anki-sync mode")
+		}
+		if cfg.SyncPass == "" {
+			return nil, nil, fmt.Errorf("sync password is required in anki-sync mode (-sync-pass-file or DEUTSCH_SRS_SYNC_PASS)")
+		}
+		sb := anksync.NewBackend(anksync.Config{
+			URL:           cfg.SyncURL,
+			User:          cfg.SyncUser,
+			Password:      cfg.SyncPass,
+			CachePath:     cfg.SyncCache,
+			ClientVersion: "deutsch-srs/" + version.Version,
+		})
+		return sb, sb.Close, nil
 	default:
 		return nil, nil, fmt.Errorf("unknown backend: %s", cfg.Backend)
 	}

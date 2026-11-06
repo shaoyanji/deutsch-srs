@@ -15,7 +15,7 @@ Do not turn it into:
 - a framework
 - a sync server
 - an AnkiWeb replacement
-- a direct `.anki2` editor
+- a direct `.anki2` editor (reading a downloaded copy is fine)
 - a plugin platform
 
 ## Tech shape
@@ -25,6 +25,7 @@ Do not turn it into:
 - SQLite
 - small deterministic SM-2-like scheduler
 - optional AnkiConnect compatibility
+- optional read-only pull from a self-hosted anki-sync-server
 
 ## Priorities
 
@@ -34,9 +35,13 @@ Build in this order:
 3. review loop
 4. add/search/stats
 5. thin AnkiConnect support
+6. read-only pull from a sync server (`internal/anksync`)
 
 Do not chase exact Anki parity.
-Do not implement Anki sync protocol.
+Do not implement the write half of the Anki sync protocol. `internal/anksync`
+logs in, reads meta and downloads the collection; the merge path
+(start/chunk/applyChanges/finish) and upload stay out, because a half
+implemented merge loses reviews silently.
 Do not write directly to `.anki2`.
 
 ## Coding rules

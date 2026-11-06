@@ -67,6 +67,10 @@ deutsch-srs -db ~/.deutsch-srs/my-decks.db
 
 # Use with AnkiConnect (optional)
 deutsch-srs -backend anki -anki-url http://127.0.0.1:8765
+
+# Pull from a self-hosted anki-sync-server (read-only)
+DEUTSCH_SRS_SYNC_PASS=… deutsch-srs -backend anki-sync \
+  -sync-url http://anki.frieren.lan -sync-user devji
 ```
 
 On first run with the `-starter` flag (default: `./decks/starter.yaml`), the app seeds a starter German deck if the database is empty.
@@ -311,12 +315,37 @@ files them as nouns, and the rank they would inherit belongs to the particle.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-backend` | `local` | Backend mode: `local` or `anki` |
+| `-backend` | `local` | Backend mode: `local`, `anki` or `anki-sync` |
 | `-db` | `./deutsch-srs.db` | Path to SQLite database |
 | `-starter` | `./decks/starter.yaml` | Path to starter deck YAML |
 | `-anki-url` | `http://127.0.0.1:8765` | AnkiConnect URL (anki mode only) |
+| `-sync-url` | - | anki-sync-server base URL, e.g. `http://anki.frieren.lan` |
+| `-sync-user` | - | sync server username |
+| `-sync-pass-file` | - | file holding the sync password (`DEUTSCH_SRS_SYNC_PASS` otherwise) |
+| `-sync-cache` | user cache dir | where the downloaded collection is kept |
 | `-new-per-day` | `20` | Unseen cards a deck introduces per day (`0` = none) |
 | `-version` | - | Print version info and exit |
+
+### Anki sync server (read-only)
+
+`-backend anki-sync` logs into a self-hosted `anki-sync-server` with the
+protocol Anki itself speaks (sync version 11: an `anki-sync` JSON header and a
+zstd body), downloads the collection once, and reviews that snapshot.
+
+The write half is deliberately absent: no merge, no upload. Grading, burying
+and suspending return `ErrReadOnly` instead of writing to the local copy,
+because a review that the next download would erase is worse than a refusal.
+
+```bash
+DEUTSCH_SRS_SYNC_PASS="$(cat ~/.config/deutsch-srs/sync-pass)" \
+  deutsch-srs -backend anki-sync \
+    -sync-url http://anki.frieren.lan \
+    -sync-user devji
+```
+
+`DEUTSCH_SRS_SYNC_URL`, `DEUTSCH_SRS_SYNC_USER` and `DEUTSCH_SRS_SYNC_PASS`
+also drive the live test: `go test ./internal/anksync -run Live -v` is skipped
+when the URL is unset.
 
 ### Daily new cards
 
@@ -367,6 +396,7 @@ deutsch-srs
 │   ├── store/            # SQLite persistence and the FTS5 search index
 │   ├── srs/              # Spaced repetition scheduler
 │   ├── anki/             # AnkiConnect client
+│   ├── anksync/          # anki-sync-server client (pull only) + collection reader
 │   ├── wordlist/         # kaikki/frequency join, sense cleaning
 │   └── importexport/     # YAML/CSV helpers
 └── decks/                # Bundled decks (starter vocabulary, B2 telc writing)
@@ -407,6 +437,7 @@ make build-windows
 ## Limitations
 
 - **Anki Mode**: Read-only scheduling; does not write review state back to Anki
+- **anki-sync Mode**: Pull only; downloads the server's collection and never pushes reviews back
 - **Scheduler**: Uses per-card stability/difficulty model; not exact Anki algorithm parity
 - **Import/Export**: Intentionally narrow scope (simple YAML/CSV only)
 
@@ -414,6 +445,7 @@ make build-windows
 
 - ✅ Local mode: Fully functional
 - ✅ AnkiConnect mode: Secondary compatibility layer
+- ✅ anki-sync mode: Read-only pull from a self-hosted sync server
 - 🚧 Active development
 
 ## License
