@@ -1,0 +1,67 @@
+# Publish deutsch-srs at https://shaoyanji.github.io/deutsch-srs/.
+#
+# This repository is a Go terminal application: there is no web build, and Pages
+# cannot serve a TUI. So the site is the README rendered once by
+# scripts/render-readme.py, which keeps the documentation in a single place.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'scripts/render-readme.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Render README
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the renderer's one dependency
+        run: pip install --quiet markdown==3.7
+
+      - name: Render
+        run: python scripts/render-readme.py
+
+      # An empty page is the likely failure, so assert on the artifact.
+      - name: Check the artifact
+        run: |
+          set -euo pipefail
+          test -s dist/index.html || { echo "::error::no dist/index.html"; exit 1; }
+          echo "index.html: $(stat -c%s dist/index.html) bytes"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
