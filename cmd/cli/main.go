@@ -114,7 +114,11 @@ func cmdDue(ctx context.Context, be backend.Backend, args []string) {
 		case "--limit":
 			i++
 			if i < len(args) {
-				limit, _ = strconv.Atoi(args[i])
+				n, err := strconv.Atoi(args[i])
+				if err != nil || n < 0 {
+					fatal("due: --limit must be zero or more")
+				}
+				limit = n
 			}
 		}
 	}
